@@ -339,16 +339,20 @@ public class PrintSCP : DicomService, IDicomServiceProvider, IDicomNServiceProvi
             var imageBoxSequence = new DicomSequence(DicomTag.ReferencedImageBoxSequence);
             var totalBoxes = columns * rows;
 
+            // 判断是否是彩色打印
+            var isColorPrint = request.SOPClassUID == DicomUID.BasicColorPrintManagementMeta;
+
             for (int i = 1; i <= totalBoxes; i++)
             {
                 var imageBoxDataset = new DicomDataset
                 {
-                    { DicomTag.ReferencedSOPClassUID, DicomUID.BasicGrayscaleImageBox },
+                    { DicomTag.ReferencedSOPClassUID, isColorPrint ? DicomUID.BasicColorImageBox : DicomUID.BasicGrayscaleImageBox },
                     { DicomTag.ReferencedSOPInstanceUID, $"{filmBoxId}.{i}" },
                     { DicomTag.ImageBoxPosition, (ushort)i }
                 };
                 imageBoxSequence.Items.Add(imageBoxDataset);
-                DicomLogger.Information("PrintSCP", "创建 Image Box {Position}/{Total}", i, totalBoxes);
+                DicomLogger.Information("PrintSCP", "创建 {Type} Image Box {Position}/{Total}", 
+                    isColorPrint ? "Color" : "Grayscale", i, totalBoxes);
             }
 
             responseDataset.Add(imageBoxSequence);
@@ -363,7 +367,7 @@ public class PrintSCP : DicomService, IDicomServiceProvider, IDicomNServiceProvi
                 { DicomTag.MessageIDBeingRespondedTo, request.MessageID },
                 { DicomTag.CommandDataSetType, (ushort)0x0102 },
                 { DicomTag.Status, (ushort)DicomStatus.Success.Code },
-                { DicomTag.AffectedSOPInstanceUID, filmBoxId }  // 使用生成的filmBoxId
+                { DicomTag.AffectedSOPInstanceUID, filmBoxId }
             };
 
             SetCommandDataset(response, command);
@@ -396,41 +400,76 @@ public class PrintSCP : DicomService, IDicomServiceProvider, IDicomNServiceProvi
                 return Task.FromResult(new DicomNSetResponse(request, DicomStatus.NoSuchObjectInstance));
             }
 
-            // 获取图像序列
-            var imageSequence = request.Dataset?.GetSequence(DicomTag.BasicGrayscaleImageSequence);
-            if (imageSequence == null || !imageSequence.Items.Any())
+            // 检查是否是图像盒请求
+            if (request.SOPClassUID == DicomUID.BasicGrayscaleImageBox || request.SOPClassUID == DicomUID.BasicColorImageBox)
             {
-                DicomLogger.Warning("PrintSCP", "未找到图像序列或序列为空");
-                return Task.FromResult(new DicomNSetResponse(request, DicomStatus.NoSuchObjectInstance));
-            }
+                // 根据SOP Class选择正确的序列标签
+                var sequenceTag = request.SOPClassUID == DicomUID.BasicColorImageBox
+                    ? DicomTag.BasicColorImageSequence
+                    : DicomTag.BasicGrayscaleImageSequence;
 
-            // 从SOPInstanceUID中获取图像位置
-            var sopInstanceUid = request.SOPInstanceUID?.UID ?? "";
-            var position = 1;
-            var parts = sopInstanceUid.Split('.');
-            if (parts.Length > 1 && int.TryParse(parts[parts.Length - 1], out int pos))
-            {
-                position = pos;
-            }
-
-            DicomLogger.Information("PrintSCP", "处理图像 - SOPInstanceUID: {Uid}, 位置: {Position}", sopInstanceUid, position);
-
-            // 处理接收到的图像
-            foreach (var item in imageSequence.Items)
-            {
-                if (item.Contains(DicomTag.PixelData))
+                // 获取图像序列
+                var imageSequence = request.Dataset?.GetSequence(sequenceTag);
+                if (imageSequence == null)
                 {
-                    var pixelData = item.GetValues<byte>(DicomTag.PixelData);
-                    DicomLogger.Information("PrintSCP", "图像 {Position} - 像素数据大小: {Size} bytes", position, pixelData?.Length ?? 0);
-                    _session.CachedImages[position] = item;
+                    // 如果没有找到图像序列，尝试创建一个
+                    var imageDataset = new DicomDataset();
+                    if (request.Dataset != null)
+                    {
+                        foreach (var item in request.Dataset)
+                        {
+                            if (item.Tag != sequenceTag)
+                            {
+                                imageDataset.Add(item);
+                            }
+                        }
+                    }
+
+                    // 创建图像序列
+                    var sequence = new DicomSequence(sequenceTag, imageDataset);
+                    if (request.Dataset != null)
+                    {
+                        request.Dataset.AddOrUpdate(sequence);
+                    }
+                    imageSequence = request.Dataset?.GetSequence(sequenceTag);
                 }
-                else
+
+                if (imageSequence == null || !imageSequence.Items.Any())
                 {
-                    DicomLogger.Warning("PrintSCP", "图像 {Position} 没有像素数据", position);
+                    DicomLogger.Warning("PrintSCP", "未找到图像序列或序列为空");
+                    return Task.FromResult(new DicomNSetResponse(request, DicomStatus.NoSuchObjectInstance));
                 }
+
+                // 从SOPInstanceUID中获取图像位置
+                var sopInstanceUid = request.SOPInstanceUID?.UID ?? "";
+                var position = 1;
+                var parts = sopInstanceUid.Split('.');
+                if (parts.Length > 1 && int.TryParse(parts[parts.Length - 1], out int pos))
+                {
+                    position = pos;
+                }
+
+                DicomLogger.Information("PrintSCP", "处理图像 - SOPInstanceUID: {Uid}, 位置: {Position}", sopInstanceUid, position);
+
+                // 处理接收到的图像
+                foreach (var item in imageSequence.Items)
+                {
+                    if (item.Contains(DicomTag.PixelData))
+                    {
+                        var pixelData = item.GetValues<byte>(DicomTag.PixelData);
+                        DicomLogger.Information("PrintSCP", "图像 {Position} - 像素数据大小: {Size} bytes", position, pixelData?.Length ?? 0);
+                        _session.CachedImages[position] = item;
+                    }
+                    else
+                    {
+                        DicomLogger.Warning("PrintSCP", "图像 {Position} 没有像素数据", position);
+                    }
+                }
+
+                return Task.FromResult(new DicomNSetResponse(request, DicomStatus.Success));
             }
 
-            return Task.FromResult(new DicomNSetResponse(request, DicomStatus.Success));
+            return Task.FromResult(new DicomNSetResponse(request, DicomStatus.NoSuchSOPClass));
         }
         catch (Exception ex)
         {
@@ -475,9 +514,18 @@ public class PrintSCP : DicomService, IDicomServiceProvider, IDicomNServiceProvi
             var imageWidth = isSingleImage ? filmWidth : (filmWidth - (columns - 1) * lineWidth) / columns;
             var imageHeight = isSingleImage ? filmHeight : (filmHeight - (rows - 1) * lineWidth) / rows;
 
+            // 检查第一个图像是否为彩色
+            var firstImage = _session.CachedImages.First().Value;
+            var photometricInterpretation = firstImage.GetSingleValue<string>(DicomTag.PhotometricInterpretation);
+            var samplesPerPixel = firstImage.GetSingleValue<ushort>(DicomTag.SamplesPerPixel);
+            var isColor = samplesPerPixel == 3 && photometricInterpretation == "RGB";
+
             // 创建输出数据集
-            var outputDataset = CreateOutputDataset(_session.CachedImages.First().Value, filmWidth, filmHeight);
-            var pixels = new byte[filmWidth * filmHeight];
+            var outputDataset = CreateOutputDataset(firstImage, filmWidth, filmHeight);
+
+            // 根据图像类型创建正确大小的像素缓冲区
+            var bytesPerPixel = isColor ? 3 : 1;
+            var pixels = new byte[filmWidth * filmHeight * bytesPerPixel];
 
             // 处理每个位置
             for (int position = 1; position <= totalSlots; position++)
@@ -502,36 +550,79 @@ public class PrintSCP : DicomService, IDicomServiceProvider, IDicomNServiceProvi
             // 只在多图布局时绘制分割线和边框
             if (!isSingleImage)
             {
-                // 绘制垂直线（包括左右边框）
-                for (int i = 0; i <= columns; i++)
+                if (isColor)
                 {
-                    int x = i * (imageWidth + lineWidth) - lineWidth;
-                    if (i == 0) x = 0;  // 左边框
-                    if (i == columns) x = filmWidth - 1;  // 右边框
-                    
-                    for (int y = 0; y < filmHeight; y++)
+                    // 彩色图像的分割线处理
+                    for (int i = 0; i <= columns; i++)
                     {
-                        var index = y * filmWidth + x;
-                        if (index < pixels.Length)
+                        int x = i * (imageWidth + lineWidth) - lineWidth;
+                        if (i == 0) x = 0;  // 左边框
+                        if (i == columns) x = filmWidth - 1;  // 右边框
+                        
+                        for (int y = 0; y < filmHeight; y++)
                         {
-                            pixels[index] = 255;  // 白色线
+                            var index = (y * filmWidth + x) * 3;
+                            if (index + 2 < pixels.Length)
+                            {
+                                // 白色线 (RGB: 255,255,255)
+                                pixels[index] = 255;     // R
+                                pixels[index + 1] = 255; // G
+                                pixels[index + 2] = 255; // B
+                            }
+                        }
+                    }
+
+                    for (int i = 0; i <= rows; i++)
+                    {
+                        int y = i * (imageHeight + lineWidth) - lineWidth;
+                        if (i == 0) y = 0;  // 上边框
+                        if (i == rows) y = filmHeight - 1;  // 下边框
+                        
+                        for (int x = 0; x < filmWidth; x++)
+                        {
+                            var index = (y * filmWidth + x) * 3;
+                            if (index + 2 < pixels.Length)
+                            {
+                                // 白色线 (RGB: 255,255,255)
+                                pixels[index] = 255;     // R
+                                pixels[index + 1] = 255; // G
+                                pixels[index + 2] = 255; // B
+                            }
                         }
                     }
                 }
-
-                // 绘制水平线（包括上下边框）
-                for (int i = 0; i <= rows; i++)
+                else
                 {
-                    int y = i * (imageHeight + lineWidth) - lineWidth;
-                    if (i == 0) y = 0;  // 上边框
-                    if (i == rows) y = filmHeight - 1;  // 下边框
-                    
-                    for (int x = 0; x < filmWidth; x++)
+                    // 灰度图像的分割线处理（保持原有逻辑）
+                    for (int i = 0; i <= columns; i++)
                     {
-                        var index = y * filmWidth + x;
-                        if (index < pixels.Length)
+                        int x = i * (imageWidth + lineWidth) - lineWidth;
+                        if (i == 0) x = 0;  // 左边框
+                        if (i == columns) x = filmWidth - 1;  // 右边框
+                        
+                        for (int y = 0; y < filmHeight; y++)
                         {
-                            pixels[index] = 255;  // 白色线
+                            var index = y * filmWidth + x;
+                            if (index < pixels.Length)
+                            {
+                                pixels[index] = 255;  // 白色线
+                            }
+                        }
+                    }
+
+                    for (int i = 0; i <= rows; i++)
+                    {
+                        int y = i * (imageHeight + lineWidth) - lineWidth;
+                        if (i == 0) y = 0;  // 上边框
+                        if (i == rows) y = filmHeight - 1;  // 下边框
+                        
+                        for (int x = 0; x < filmWidth; x++)
+                        {
+                            var index = y * filmWidth + x;
+                            if (index < pixels.Length)
+                            {
+                                pixels[index] = 255;  // 白色线
+                            }
                         }
                     }
                 }
@@ -555,19 +646,39 @@ public class PrintSCP : DicomService, IDicomServiceProvider, IDicomNServiceProvi
         var dataset = new DicomDataset();
         dataset.AddOrUpdate(DicomTag.Rows, (ushort)height);
         dataset.AddOrUpdate(DicomTag.Columns, (ushort)width);
-        dataset.AddOrUpdate(DicomTag.BitsAllocated, sourceImage.GetSingleValue<ushort>(DicomTag.BitsAllocated));
-        dataset.AddOrUpdate(DicomTag.BitsStored, sourceImage.GetSingleValue<ushort>(DicomTag.BitsStored));
-        dataset.AddOrUpdate(DicomTag.HighBit, sourceImage.GetSingleValue<ushort>(DicomTag.HighBit));
-        dataset.AddOrUpdate(DicomTag.PixelRepresentation, sourceImage.GetSingleValue<ushort>(DicomTag.PixelRepresentation));
-        dataset.AddOrUpdate(DicomTag.SamplesPerPixel, sourceImage.GetSingleValue<ushort>(DicomTag.SamplesPerPixel));
-        dataset.AddOrUpdate(DicomTag.PhotometricInterpretation, sourceImage.GetSingleValue<string>(DicomTag.PhotometricInterpretation));
+        
+        // 获取图像类型
+        var photometricInterpretation = sourceImage.GetSingleValue<string>(DicomTag.PhotometricInterpretation);
+        var samplesPerPixel = sourceImage.GetSingleValue<ushort>(DicomTag.SamplesPerPixel);
+        var isColor = samplesPerPixel == 3 && photometricInterpretation == "RGB";
+
+        if (isColor)
+        {
+            // 彩色图像属性
+            dataset.AddOrUpdate(DicomTag.SamplesPerPixel, (ushort)3);
+            dataset.AddOrUpdate(DicomTag.PhotometricInterpretation, "RGB");
+            dataset.AddOrUpdate(DicomTag.PlanarConfiguration, (ushort)0); // color-by-pixel
+            dataset.AddOrUpdate(DicomTag.BitsAllocated, (ushort)8);
+            dataset.AddOrUpdate(DicomTag.BitsStored, (ushort)8);
+            dataset.AddOrUpdate(DicomTag.HighBit, (ushort)7);
+            dataset.AddOrUpdate(DicomTag.PixelRepresentation, (ushort)0);
+        }
+        else
+        {
+            // 保持原有灰度图像属性
+            dataset.AddOrUpdate(DicomTag.BitsAllocated, sourceImage.GetSingleValue<ushort>(DicomTag.BitsAllocated));
+            dataset.AddOrUpdate(DicomTag.BitsStored, sourceImage.GetSingleValue<ushort>(DicomTag.BitsStored));
+            dataset.AddOrUpdate(DicomTag.HighBit, sourceImage.GetSingleValue<ushort>(DicomTag.HighBit));
+            dataset.AddOrUpdate(DicomTag.PixelRepresentation, sourceImage.GetSingleValue<ushort>(DicomTag.PixelRepresentation));
+            dataset.AddOrUpdate(DicomTag.SamplesPerPixel, sourceImage.GetSingleValue<ushort>(DicomTag.SamplesPerPixel));
+            dataset.AddOrUpdate(DicomTag.PhotometricInterpretation, sourceImage.GetSingleValue<string>(DicomTag.PhotometricInterpretation));
+        }
         
         var studyUid = sourceImage.GetSingleValueOrDefault(DicomTag.StudyInstanceUID, _session.FilmSession?.SOPInstanceUID) 
             ?? DicomUID.Generate().UID;
         dataset.AddOrUpdate(DicomTag.StudyInstanceUID, studyUid);
         dataset.AddOrUpdate(DicomTag.SeriesInstanceUID, DicomUID.Generate().UID);
 
-        // 检查 CurrentFilmBox 和 SOPInstanceUID
         var sopInstanceUid = _session.CurrentFilmBox?.SOPInstanceUID ?? DicomUID.Generate().UID;
         dataset.AddOrUpdate(DicomTag.SOPInstanceUID, sopInstanceUid);
         dataset.AddOrUpdate(DicomTag.SOPClassUID, DicomUID.SecondaryCaptureImageStorage);
@@ -586,50 +697,17 @@ public class PrintSCP : DicomService, IDicomServiceProvider, IDicomNServiceProvi
                 return;
             }
 
-            var pixelData = image.GetValues<byte>(DicomTag.PixelData);
-            var srcWidth = image.GetSingleValue<ushort>(DicomTag.Columns);
-            var srcHeight = image.GetSingleValue<ushort>(DicomTag.Rows);
+            var photometricInterpretation = image.GetSingleValue<string>(DicomTag.PhotometricInterpretation);
+            var samplesPerPixel = image.GetSingleValue<ushort>(DicomTag.SamplesPerPixel);
+            var isColor = samplesPerPixel == 3 && photometricInterpretation == "RGB";
 
-            if (srcWidth == 0 || srcHeight == 0 || pixelData == null || pixelData.Length == 0)
+            if (isColor)
             {
-                DrawEmptyImage(pixels, xBase, yBase, maxWidth, maxHeight, filmWidth, isSingleImage);
-                return;
+                ProcessColorImage(image, pixels, xBase, yBase, maxWidth, maxHeight, filmWidth, isSingleImage);
             }
-
-            // 在多图布局时才添加边距
-            double marginPercent = isSingleImage ? 0 : 0.02;
-            var marginX = (int)(maxWidth * marginPercent);
-            var marginY = (int)(maxHeight * marginPercent);
-            var availableWidth = maxWidth - 2 * marginX;
-            var availableHeight = maxHeight - 2 * marginY;
-
-            // 计算缩放比例并保持原始比例
-            var scale = Math.Min((double)availableWidth / srcWidth, (double)availableHeight / srcHeight);
-            var scaledWidth = (int)(srcWidth * scale);
-            var scaledHeight = (int)(srcHeight * scale);
-
-            // 居中显示（考虑边距）
-            var xOffset = xBase + marginX + (availableWidth - scaledWidth) / 2;
-            var yOffset = yBase + marginY + (availableHeight - scaledHeight) / 2;
-
-            // 复制和缩放图像
-            for (int y = 0; y < scaledHeight; y++)
+            else
             {
-                var srcY = Math.Min((int)(y / scale), srcHeight - 1);
-                var dstRowOffset = (yOffset + y) * filmWidth;
-                var srcRowOffset = srcY * srcWidth;
-
-                for (int x = 0; x < scaledWidth; x++)
-                {
-                    var srcX = Math.Min((int)(x / scale), srcWidth - 1);
-                    var dstIndex = dstRowOffset + xOffset + x;
-                    var srcIndex = srcRowOffset + srcX;
-
-                    if (srcIndex < pixelData.Length && dstIndex < pixels.Length)
-                    {
-                        pixels[dstIndex] = pixelData[srcIndex];
-                    }
-                }
+                ProcessGrayscaleImage(image, pixels, xBase, yBase, maxWidth, maxHeight, filmWidth, isSingleImage);
             }
         }
         catch (Exception ex)
@@ -639,8 +717,128 @@ public class PrintSCP : DicomService, IDicomServiceProvider, IDicomNServiceProvi
         }
     }
 
+    private void ProcessColorImage(DicomDataset image, byte[] pixels, int xBase, int yBase, int maxWidth, int maxHeight, int filmWidth, bool isSingleImage)
+    {
+        var pixelData = image.GetValues<byte>(DicomTag.PixelData);
+        var srcWidth = image.GetSingleValue<ushort>(DicomTag.Columns);
+        var srcHeight = image.GetSingleValue<ushort>(DicomTag.Rows);
+        var planarConfiguration = image.GetSingleValue<ushort>(DicomTag.PlanarConfiguration);
+
+        if (srcWidth == 0 || srcHeight == 0 || pixelData == null || pixelData.Length == 0)
+        {
+            DrawEmptyImage(pixels, xBase, yBase, maxWidth, maxHeight, filmWidth, isSingleImage);
+            return;
+        }
+
+        // 在多图布局时才添加边距
+        double marginPercent = isSingleImage ? 0 : 0.02;
+        var marginX = (int)(maxWidth * marginPercent);
+        var marginY = (int)(maxHeight * marginPercent);
+        var availableWidth = maxWidth - 2 * marginX;
+        var availableHeight = maxHeight - 2 * marginY;
+
+        // 计算缩放比例并保持原始比例
+        var scale = Math.Min((double)availableWidth / srcWidth, (double)availableHeight / srcHeight);
+        var scaledWidth = (int)(srcWidth * scale);
+        var scaledHeight = (int)(srcHeight * scale);
+
+        // 居中显示（考虑边距）
+        var xOffset = xBase + marginX + (availableWidth - scaledWidth) / 2;
+        var yOffset = yBase + marginY + (availableHeight - scaledHeight) / 2;
+
+        // 处理彩色图像数据
+        var bytesPerPixel = 3;
+        var outputStride = filmWidth * bytesPerPixel;
+
+        for (int y = 0; y < scaledHeight; y++)
+        {
+            var srcY = Math.Min((int)(y / scale), srcHeight - 1);
+            var dstRowOffset = (yOffset + y) * outputStride;
+
+            for (int x = 0; x < scaledWidth; x++)
+            {
+                var srcX = Math.Min((int)(x / scale), srcWidth - 1);
+                var dstIndex = dstRowOffset + (xOffset + x) * bytesPerPixel;
+                var srcIndex = planarConfiguration == 0
+                    ? srcY * srcWidth * bytesPerPixel + srcX * bytesPerPixel
+                    : srcX + srcY * srcWidth + (srcWidth * srcHeight * 0); // R plane
+
+                if (srcIndex + 2 < pixelData.Length && dstIndex + 2 < pixels.Length)
+                {
+                    if (planarConfiguration == 0)
+                    {
+                        // Color-by-pixel (RGB RGB RGB)
+                        pixels[dstIndex] = pixelData[srcIndex];     // R
+                        pixels[dstIndex + 1] = pixelData[srcIndex + 1]; // G
+                        pixels[dstIndex + 2] = pixelData[srcIndex + 2]; // B
+                    }
+                    else
+                    {
+                        // Color-by-plane (RRR...GGG...BBB)
+                        var planeSize = srcWidth * srcHeight;
+                        pixels[dstIndex] = pixelData[srcIndex];                    // R
+                        pixels[dstIndex + 1] = pixelData[srcIndex + planeSize];    // G
+                        pixels[dstIndex + 2] = pixelData[srcIndex + planeSize * 2]; // B
+                    }
+                }
+            }
+        }
+    }
+
+    private void ProcessGrayscaleImage(DicomDataset image, byte[] pixels, int xBase, int yBase, int maxWidth, int maxHeight, int filmWidth, bool isSingleImage)
+    {
+        var pixelData = image.GetValues<byte>(DicomTag.PixelData);
+        var srcWidth = image.GetSingleValue<ushort>(DicomTag.Columns);
+        var srcHeight = image.GetSingleValue<ushort>(DicomTag.Rows);
+
+        if (srcWidth == 0 || srcHeight == 0 || pixelData == null || pixelData.Length == 0)
+        {
+            DrawEmptyImage(pixels, xBase, yBase, maxWidth, maxHeight, filmWidth, isSingleImage);
+            return;
+        }
+
+        // 在多图布局时才添加边距
+        double marginPercent = isSingleImage ? 0 : 0.02;
+        var marginX = (int)(maxWidth * marginPercent);
+        var marginY = (int)(maxHeight * marginPercent);
+        var availableWidth = maxWidth - 2 * marginX;
+        var availableHeight = maxHeight - 2 * marginY;
+
+        // 计算缩放比例并保持原始比例
+        var scale = Math.Min((double)availableWidth / srcWidth, (double)availableHeight / srcHeight);
+        var scaledWidth = (int)(srcWidth * scale);
+        var scaledHeight = (int)(srcHeight * scale);
+
+        // 居中显示（考虑边距）
+        var xOffset = xBase + marginX + (availableWidth - scaledWidth) / 2;
+        var yOffset = yBase + marginY + (availableHeight - scaledHeight) / 2;
+
+        // 复制和缩放图像
+        for (int y = 0; y < scaledHeight; y++)
+        {
+            var srcY = Math.Min((int)(y / scale), srcHeight - 1);
+            var dstRowOffset = (yOffset + y) * filmWidth;
+            var srcRowOffset = srcY * srcWidth;
+
+            for (int x = 0; x < scaledWidth; x++)
+            {
+                var srcX = Math.Min((int)(x / scale), srcWidth - 1);
+                var dstIndex = dstRowOffset + xOffset + x;
+                var srcIndex = srcRowOffset + srcX;
+
+                if (srcIndex < pixelData.Length && dstIndex < pixels.Length)
+                {
+                    pixels[dstIndex] = pixelData[srcIndex];
+                }
+            }
+        }
+    }
+
     private void DrawEmptyImage(byte[] pixels, int xBase, int yBase, int maxWidth, int maxHeight, int filmWidth, bool isSingleImage)
     {
+        // 检查是否为彩色图像
+        var bytesPerPixel = pixels.Length / (filmWidth * maxHeight);
+
         // 在多图布局时才添加边距
         double marginPercent = isSingleImage ? 0 : 0.02;
         var marginX = (int)(maxWidth * marginPercent);
@@ -652,14 +850,33 @@ public class PrintSCP : DicomService, IDicomServiceProvider, IDicomNServiceProvi
             var rowOffset = (yBase + y) * filmWidth;
             for (int x = 0; x < maxWidth; x++)
             {
-                var index = rowOffset + xBase + x;
-                if (index < pixels.Length)
+                if (bytesPerPixel == 3)
                 {
-                    // 只在内部区域填充黑色
-                    if (y >= marginY && y < (maxHeight - marginY) &&
-                        x >= marginX && x < (maxWidth - marginX))
+                    var index = (rowOffset + xBase + x) * 3;
+                    if (index + 2 < pixels.Length)
                     {
-                        pixels[index] = 0;  // 黑色
+                        // 只在内部区域填充黑色
+                        if (y >= marginY && y < (maxHeight - marginY) &&
+                            x >= marginX && x < (maxWidth - marginX))
+                        {
+                            pixels[index] = 0;     // R
+                            pixels[index + 1] = 0; // G
+                            pixels[index + 2] = 0; // B
+                        }
+                    }
+                }
+                else
+                {
+                    // 保持原有灰度图像处理逻辑
+                    var index = rowOffset + xBase + x;
+                    if (index < pixels.Length)
+                    {
+                        // 只在内部区域填充黑色
+                        if (y >= marginY && y < (maxHeight - marginY) &&
+                            x >= marginX && x < (maxWidth - marginX))
+                        {
+                            pixels[index] = 0;  // 黑色
+                        }
                     }
                 }
             }
