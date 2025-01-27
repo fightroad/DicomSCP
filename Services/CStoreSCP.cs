@@ -542,6 +542,47 @@ public class CStoreSCP : DicomService, IDicomServiceProvider, IDicomCStoreProvid
         }
     }
 
+    // 添加时间格式化方法
+    private string StandardizeDicomDate(string? dateValue)
+    {
+        if (string.IsNullOrEmpty(dateValue))
+        {
+            DicomLogger.Debug("StoreSCP", "日期为空，使用当前日期");
+            return DateTime.Now.ToString("yyyyMMdd");
+        }
+
+        DicomLogger.Debug("StoreSCP", "处理日期 - 原始值: {OriginalDate}", dateValue);
+
+        // 移除所有非数字字符
+        var cleanDate = new string(dateValue.Where(char.IsDigit).ToArray());
+        DicomLogger.Debug("StoreSCP", "清理后的日期: {CleanDate}", cleanDate);
+
+        // 如果清理后的日期不是8位，使用当前日期
+        if (cleanDate.Length != 8)
+        {
+            DicomLogger.Warning("StoreSCP", "非标准日期格式: {Date} -> {CleanDate}, 使用当前日期", dateValue, cleanDate);
+            return DateTime.Now.ToString("yyyyMMdd");
+        }
+
+        try
+        {
+            // 验证日期是否有效
+            var year = int.Parse(cleanDate.Substring(0, 4));
+            var month = int.Parse(cleanDate.Substring(4, 2));
+            var day = int.Parse(cleanDate.Substring(6, 2));
+            
+            var date = new DateTime(year, month, day);
+            var result = date.ToString("yyyyMMdd");
+            DicomLogger.Debug("StoreSCP", "日期格式化完成: {OriginalDate} -> {Result}", dateValue, result);
+            return result;
+        }
+        catch (Exception ex)
+        {
+            DicomLogger.Warning("StoreSCP", ex, "日期格式无效: {Date}, 使用当前日期", dateValue);
+            return DateTime.Now.ToString("yyyyMMdd");
+        }
+    }
+
     public async Task<DicomCStoreResponse> OnCStoreRequestAsync(DicomCStoreRequest request)
     {
         string? tempFilePath = null;
@@ -574,9 +615,8 @@ public class CStoreSCP : DicomService, IDicomServiceProvider, IDicomCStoreProvid
                     return new DicomCStoreResponse(request, DicomStatus.InvalidAttributeValue);
                 }
 
-                // 获取检查日期，如果没有则使用当前日期
-                var studyDate = request.Dataset.GetSingleValueOrDefault<string>(DicomTag.StudyDate, 
-                    DateTime.Now.ToString("yyyyMMdd"));
+                // 标准化日期时间
+                var studyDate = StandardizeDicomDate(request.Dataset.GetSingleValueOrDefault<string>(DicomTag.StudyDate, string.Empty));
                 
                 // 解析年月日
                 var year = studyDate.Substring(0, 4);
