@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  dicomscp:
+    image: fightroad/dicomscp:latest
+    container_name: DicomSCP
+    restart: unless-stopped
+    ports:
+      - "5000:5000"      # Web API端口
+      - "11112:11112"    # StoreSCP端口
+      - "11113:11113"    # WorklistSCP端口
+      - "11114:11114"    # QRSCP端口
+      - "11115:11115"    # PrintSCP端口
+    volumes:
+      - ./data/keys:/root/.aspnet/DataProtection-Keys
+      - ./data/logs:/app/logs
+      - ./data/received_files:/app/received_files
+      - ./data/temp_files:/app/temp_files
+      - ./data/db:/app/db
+      - ./config/appsettings.json:/app/appsettings.json
+    environment:
+      - TZ=Asia/Shanghai
+    networks:
+      - dicom_net
+
+networks:
+  dicom_net:
+    driver: bridge 
