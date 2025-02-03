@@ -2,6 +2,7 @@
 
 ## 携手Cursor重磅发布，打造中文开源社区最完善轻量PACS系统，医学影像必备DICOM工具箱!
 
+
 - 基于 .NET Core 的 DICOM SCP（Service Class Provider）服务器，提供 DICOM 存储、工作列表、查询检索服务，打印服务，WADO/DicomWeb服务，集成了功能强大的DICOM 桌面和Web查看器。
 
 - 项目支持跨平台，windows直接下载发布版本运行，linux直接使用[Docker部署](#docker部署) 。 weasis查看影像需要客户端电脑安装了才能调用。
@@ -13,6 +14,9 @@
 - 个人项目，仅供大家参考学习，没有详细测试过，有问题可以提issue，能修复的bug有时间会修复。
 
 - 项目定位是轻量的PACS，专注对DICOM的处理，不会增加RIS相关的内容。
+
+- 作者有团队专注医疗信息化软件开发，如有相关需求合作可以联系！
+
 
 - [项目Gitee仓库](https://gitee.com/fightroad/DicomSCP)
 
