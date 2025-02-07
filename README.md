@@ -1,6 +1,6 @@
 # DICOM 管理系统
 
-## 携手Cursor重磅发布，打造中文开源社区最完善轻量PACS系统，医学影像必备DICOM工具箱!
+## 打造中文开源社区最完善,集成度最高的轻量PACS系统，医学影像必备DICOM工具箱!
 
 
 - 基于 .NET Core 的 DICOM SCP（Service Class Provider）服务器，提供 DICOM 存储、工作列表、查询检索服务，打印服务，WADO/DicomWeb服务，集成了功能强大的DICOM 桌面和Web查看器。
@@ -9,13 +9,13 @@
 
 - 推荐使用 [Docker部署](#docker部署) 推送会自动更新镜像。其他版本可以自行拉取dev分支构建，发行版不定期发布。
 
-- 项目用爱发电，作者多年医学影像从业者，旨在为中文医学影像提供一个轻量级的DICOM解决方案。不限制使用，但请遵守[MIT许可证](LICENSE)。
+- 项目用爱发电，作者多年医学影像从业者，旨在为中文医学影像贡献点力量，提供一个轻量级的DICOM解决方案。不限制使用，但请遵守[MIT许可证](LICENSE)。
 
 - 个人项目，仅供大家参考学习，没有详细测试过，有问题可以提issue，能修复的bug有时间会修复。
 
 - 项目定位是轻量的PACS，专注对DICOM的处理，不会增加RIS相关的内容。
 
-- 作者有团队专注医疗信息化软件开发，如有相关需求合作可以联系！
+- 有专注医疗信息化软件开发团队，如有相关需求合作可以联系！
 
 
 - [项目Gitee仓库](https://gitee.com/fightroad/DicomSCP)
@@ -314,6 +314,7 @@ proxy_http_version 1.1;
 - **QQ名：生活**
 - **GITEE名：mmkangaroo**
 - **GITEE名：wisgtalt**
+- **GITEE名：longlong159357**
 
 ## 参与贡献
 
