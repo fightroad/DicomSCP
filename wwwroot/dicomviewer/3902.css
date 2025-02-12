@@ -1,0 +1,4 @@
+.viewport-overlay{max-width:40%}.viewport-overlay span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.viewport-overlay.left-viewport{text-align:left}.viewport-overlay.right-viewport-scrollbar{text-align:right}.viewport-overlay.right-viewport-scrollbar .flex.flex-row{-webkit-box-pack:end;-ms-flex-pack:end;justify-content:flex-end}
+.dicom-upload-drop-area-border-dash{background-image:repeating-linear-gradient(90deg,#7bb2ce 0,#7bb2ce 50%,transparent 0,transparent),repeating-linear-gradient(90deg,#7bb2ce 0,#7bb2ce 50%,transparent 0,transparent),repeating-linear-gradient(180deg,#7bb2ce 0,#7bb2ce 50%,transparent 0,transparent),repeating-linear-gradient(180deg,#7bb2ce 0,#7bb2ce 50%,transparent 0,transparent);background-position:0 0,0 100%,0 0,100% 0;background-repeat:repeat-x,repeat-x,repeat-y,repeat-y;background-size:20px 3px,20px 3px,3px 20px,3px 20px}
+
+/*# sourceMappingURL=3902.css.map*/
