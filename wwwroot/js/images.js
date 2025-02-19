@@ -454,13 +454,16 @@ function openOHIF(studyUid, event) {
             keyboard: false
         });
 
-        // 显示对话框
-        modal.show();
-
         // 监听对话框关闭事件
         dialogEl.addEventListener('hidden.bs.modal', function () {
+            // 移除 aria-hidden 属性
+            this.removeAttribute('aria-hidden');
+            // 移除对话框
             dialogEl.remove();
         });
+
+        // 显示对话框
+        modal.show();
 
     } catch (error) {
         console.error('打开OHIF失败:', error);
