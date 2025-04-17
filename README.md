@@ -317,6 +317,7 @@ proxy_http_version 1.1;
 - **GITEE名：longlong159357**
 - **GITEE名：Dentalman**
 - **支付宝：恒**
+- **微信：syg**
 
 ## 参与贡献
 
