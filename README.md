@@ -318,6 +318,7 @@ proxy_http_version 1.1;
 - **GITEE名：Dentalman**
 - **支付宝：恒**
 - **微信：syg**
+- **GITEE名：qi-hc**
 
 ## 参与贡献
 
