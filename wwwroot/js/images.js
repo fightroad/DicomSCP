@@ -109,6 +109,9 @@ function updateImagesPagination(result) {
         
         elements.prevPage.disabled = page <= 1;
         elements.nextPage.disabled = page >= totalPages || totalCount === 0;
+        
+        // 存储总页数到按钮的data属性中
+        elements.nextPage.setAttribute('data-total-pages', totalPages);
     } catch (error) {
         handleError(error, '更新分页信息失败');
     }
@@ -137,7 +140,7 @@ function bindImagesEvents() {
             const newNextBtn = document.getElementById('images-nextPage');
             newNextBtn.addEventListener('click', () => {
                 const totalPages = parseInt(newNextBtn.getAttribute('data-total-pages') || '1');
-                if (imagesCurrentPage < totalPages) {
+                if (!newNextBtn.disabled && imagesCurrentPage < totalPages) {
                     imagesCurrentPage++;
                     loadImages(imagesCurrentPage);
                 }
