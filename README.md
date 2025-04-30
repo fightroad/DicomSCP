@@ -319,6 +319,8 @@ proxy_http_version 1.1;
 - **支付宝：恒**
 - **微信：syg**
 - **GITEE名：qi-hc**
+- **GITEE名：kyo**
+
 
 ## 参与贡献
 
