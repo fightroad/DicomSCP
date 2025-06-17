@@ -323,6 +323,7 @@ proxy_http_version 1.1;
 - **微信：syg**
 - **GITEE名：qi-hc**
 - **GITEE名：kyo**
+- **GITEE名：yunyunvip**
 
 
 ## 参与贡献
