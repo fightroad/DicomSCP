@@ -314,16 +314,17 @@ proxy_http_version 1.1;
 感谢以下赞助者的支持（排名不分先后）：
 
 - **平凡之路**
-- **QQ名：生活**
-- **GITEE名：mmkangaroo**
-- **GITEE名：wisgtalt**
-- **GITEE名：longlong159357**
-- **GITEE名：Dentalman**
+- **QQ：生活**
+- **GITEE：mmkangaroo**
+- **GITEE：wisgtalt**
+- **GITEE：longlong159357**
+- **GITEE：Dentalman**
 - **支付宝：恒**
 - **微信：syg**
-- **GITEE名：qi-hc**
-- **GITEE名：kyo**
-- **GITEE名：yunyunvip**
+- **GITEE：qi-hc**
+- **GITEE：kyo**
+- **GITEE：yunyunvip**
+- **GITEE：三才网络**
 
 
 ## 参与贡献
