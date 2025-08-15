@@ -57,19 +57,9 @@
 
 ![登录](about/登录.png)
 ![影像管理](about/pacslist.png)
-![weasis预览](about/weasis.png)
 ![3d预览](about/3D.png)
 ![OHIF预览](about/ohif.png)
-![序列预览](about/影像查看.png)
-![工作列表](about/worklistscp.png)  
-![查询检索](about/qrscu.png) 
-![发送图像](about/发送图像.png)  
-![打印](about/打印管理.png)  
 ![胶片](about/print.png)  
-![配置](about/settings.png) 
-![日志](about/logs.png) 
-![监控](about/status.png) 
-![swagger](about/Swagger.png) 
 
 ## 功能特性
 
