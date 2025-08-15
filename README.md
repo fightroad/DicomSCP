@@ -13,12 +13,13 @@
 
 - 个人项目，仅供大家学习参考，不会增加RIS相关功能。
 
-- 另开发有完整商业版云PACS和云胶片解决方案，如有相关需求合作可以联系咨询！
+- 另开发有完整商业版云PACS和云胶片解决方案，合作方式多样，有相关需求可以联系咨询！
 
 #### 商业版部分功能预览
 ![后台管理](about/后台管理.png)
 ![商业ris](about/商业报告.png)
-![商业前置](about/商业前置.png)
+![商业前置](about/cloudfilm.png)
+![viewer](about/mobileviewer.png)
 
 
 - [项目Gitee仓库](https://gitee.com/fightroad/DicomSCP)
