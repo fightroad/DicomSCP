@@ -1,19 +1,11 @@
-# DICOM 管理系统
-
-## 打造中文开源社区最完善,集成度最高的轻量PACS系统，医学影像必备DICOM工具箱!
-
+## 中文开源社区最完善,集成度最高的轻量PACS系统，医学影像必备DICOM工具箱!
 
 - 基于 .NET Core 的 DICOM SCP（Service Class Provider）服务器，提供 DICOM 存储、工作列表、查询检索服务，打印服务，WADO/DicomWeb服务，集成了功能强大的DICOM 桌面和Web查看器。
-
-- 项目支持跨平台，windows直接下载发布版本运行，linux直接使用[Docker部署](#docker部署) 。 weasis查看影像需要客户端电脑安装了才能调用。
-
-- 推荐使用 [Docker部署](#docker部署) 推送会自动更新镜像。其他版本可以自行拉取dev分支构建，发行版不定期发布。
-
-- 项目用爱发电，作者多年医学影像从业者，旨在为中文医学影像贡献点力量，提供一个轻量级的PACS解决方案。不限制使用，请遵守[MIT许可协议](LICENSE)。
-
-- 个人项目，仅供大家学习参考，不会增加RIS相关功能。
-
+- 推荐使用 [Docker部署](#docker部署) 推送会自动发布镜像。其他版本可以自行拉取dev分支构建，发行版不定期发布。
+- 项目用爱发电，作者多年医学影像从业者，旨在为中文医学影像提供一个免费的轻量级PACS解决方案。不限制使用，请遵守[MIT许可协议](LICENSE)。
+- 个人项目，仅供大家学习参考，如有不会部署使用的也可以联系提供有偿服务。
 - 另有完整商业版云RIS/PACS(云影像)和云胶片（数字影像）解决方案助力紧密型医共体和医保影像云，合作方式多样，有相关需求可以联系咨询！ 微信/QQ同号：30760655
+- [项目Gitee仓库](https://gitee.com/fightroad/DicomSCP)  |  [项目GitHub仓库](https://github.com/fightroad/DicomSCP) 
 
 #### 商业版部分功能预览
 ![后台管理](about/后台管理.png)
@@ -21,29 +13,22 @@
 ![商业前置](about/cloudfilm.png)
 ![viewer](about/report.png) ![viewer](about/mobileviewer.png)
 
-
-- [项目Gitee仓库](https://gitee.com/fightroad/DicomSCP)
-
-- [项目GitHub仓库](https://github.com/fightroad/DicomSCP)
-
-## 支持项目
+## 赞助项目
 
 如果这个项目对您有帮助，欢迎赞助支持我们继续改进！
 
-<table>
-  <tr>
-    <td align="center">
-      <img src="about/wechat.png" alt="微信赞助" width="200"/>
-      <br/>
-      微信赞助
-    </td>
-    <td align="center">
-      <img src="about/alipay.png" alt="支付宝赞助" width="200"/>
-      <br/>
-      支付宝赞助
-    </td>
-  </tr>
-</table>
+<div style="display: flex; align-items: center; justify-content: center; gap: 64px; column-gap: 64px;">
+  <div style="text-align: center;">
+    <img src="about/wechat.png" alt="微信赞助" width="200"/>
+    <br/>
+    微信赞助
+  </div>
+  <div style="text-align: center;">
+    <img src="about/alipay.png" alt="支付宝赞助" width="200"/>
+    <br/>
+    支付宝赞助
+  </div>
+</div>
 
 您的每一份支持都将帮助我们:
 - 🚀 开发新功能
@@ -51,7 +36,7 @@
 - 📚 完善项目文档
 - 🎨 优化用户体验
 
-赞助时请备注您的 Gitee/GitHub ID，我们会将您添加到[赞助者名单](#赞助者)中。
+赞助时请备注您的信息，我们会将您添加到[赞助者名单](#赞助者)中。
 
 ## 开源版功能预览
 
