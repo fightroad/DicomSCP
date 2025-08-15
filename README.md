@@ -19,7 +19,7 @@
 ![后台管理](about/后台管理.png)
 ![商业ris](about/商业报告.png)
 ![商业前置](about/cloudfilm.png)
-![viewer](about/mobileviewer.png)
+![viewer](about/report.png) ![viewer](about/mobileviewer.png)
 
 
 - [项目Gitee仓库](https://gitee.com/fightroad/DicomSCP)
