@@ -17,7 +17,7 @@
 
 如果这个项目对您有帮助，欢迎赞助支持我们继续改进！
 
-<div style="display: flex; align-items: center; justify-content: center; gap: 64px; column-gap: 64px;">
+<div style="display: flex; align-items: center; justify-content: flex-start; gap: 64px; column-gap: 64px;">
   <div style="text-align: center;">
     <img src="about/wechat.png" alt="微信赞助" width="200"/>
     <br/>
