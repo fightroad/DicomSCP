@@ -7,7 +7,7 @@
 - 另有完整商业版云RIS/PACS(云影像)和云胶片（数字影像）解决方案助力紧密型医共体和医保影像云，合作方式多样，有相关需求可以联系咨询！ 微信/QQ同号：30760655
 - [项目Gitee仓库](https://gitee.com/fightroad/DicomSCP)  |  [项目GitHub仓库](https://github.com/fightroad/DicomSCP) 
 
-#### 商业版部分功能预览
+## 商业版部分功能预览
 ![后台管理](about/后台管理.png)
 ![商业ris](about/商业报告.png)
 ![商业前置](about/cloudfilm.png)
@@ -17,18 +17,20 @@
 
 如果这个项目对您有帮助，欢迎赞助支持我们继续改进！
 
-<div style="display: flex; align-items: center; justify-content: flex-start; gap: 64px; column-gap: 64px;">
-  <div style="text-align: center;">
-    <img src="about/wechat.png" alt="微信赞助" width="200"/>
-    <br/>
-    微信赞助
-  </div>
-  <div style="text-align: center;">
-    <img src="about/alipay.png" alt="支付宝赞助" width="200"/>
-    <br/>
-    支付宝赞助
-  </div>
-</div>
+<table>
+  <tr>
+    <td align="center">
+      <img src="about/wechat.png" alt="微信赞助" width="200"/>
+      <br/>
+      微信赞助
+    </td>
+    <td align="center">
+      <img src="about/alipay.png" alt="支付宝赞助" width="200"/>
+      <br/>
+      支付宝赞助
+    </td>
+  </tr>
+</table>
 
 您的每一份支持都将帮助我们:
 - 🚀 开发新功能
@@ -258,30 +260,15 @@ proxy_set_header Connection "Upgrade";
 proxy_http_version 1.1;
 ```
 
-## 技术栈
-
-- 后端框架：.NET Core
-- 前端框架：原生 JavaScript
-- DICOM 处理：fo-dicom、Cornerstone.js
-- 数据库：SQLite
-- HTTP 客户端：Axios
-- UI 组件：Bootstrap
 
 ## 使用的开源项目
 
 本项目使用了以下优秀的开源项目：
 
-### 后端
-- [fo-dicom](https://github.com/fo-dicom/fo-dicom) - Fellow Oak DICOM for .NET
-- [Serilog](https://github.com/serilog/serilog) - 结构化日志框架
-- [SQLite-net](https://github.com/praeclarum/sqlite-net) - 简单、强大的 SQLite 客户端
-
-### 前端
-- [Cornerstone.js](https://github.com/cornerstonejs/cornerstone) - 现代 Web DICOM 查看器
-- [weasis](https://github.com/nroduit/Weasis) - DICOM桌面查看器
-- [OHIF](https://github.com/OHIF/Viewers) - DICOM Web查看器
-- [Axios](https://github.com/axios/axios) - 基于 Promise 的 HTTP 客户端
-- [Bootstrap](https://github.com/twbs/bootstrap) - 前端组件库
+- [fo-dicom](https://github.com/fo-dicom/fo-dicom) 
+- [weasis](https://github.com/nroduit/Weasis)
+- [OHIF](https://github.com/OHIF/Viewers)
+- [Bootstrap](https://github.com/twbs/bootstrap)
 
 感谢这些优秀的开源项目，让本项目得以实现！
 
