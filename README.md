@@ -12,7 +12,9 @@
 ![Risreport](about/risreport.png)
 ![CloudFilm](about/cloudfilm.png)
 ![viewer](about/report.png) ![viewer](about/mobileviewer.png)
-![Risreport](about/DicomServer.png)
+![Dicomserver](about/DicomServer.png)
+![自助打印](about/自助打印.png)
+
 
 ## 赞助项目
 
