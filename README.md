@@ -13,7 +13,6 @@
 ![CloudFilm](about/cloudfilm.png)
 ![viewer](about/report.png) ![viewer](about/mobileviewer.png)
 ![Dicomserver](about/DicomServer.png)
-![自助打印](about/自助打印.png)
 
 
 ## 赞助项目
@@ -289,6 +288,8 @@ proxy_http_version 1.1;
 - **GITEE：kyo**
 - **GITEE：yunyunvip**
 - **GITEE：三才网络**
+- **GITEE：叶秋梦**
+
 
 
 ## 参与贡献
