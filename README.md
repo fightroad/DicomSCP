@@ -221,6 +221,18 @@
 - 40GB+ 可用磁盘空间
 - 现代浏览器（Chrome/Firefox/Edge）
 
+## 构建和发布
+
+### Windows 单文件发布
+
+发布为自包含的单文件可执行程序：
+
+```bash
+dotnet publish -c Release -r win-x64 /p:SelfContained=true /p:PublishSingleFile=true /p:DebugType=None /p:DebugSymbols=false
+```
+
+发布后的文件位于：`bin/Release/net8.0/win-x64/publish/DicomSCP.exe`
+
 ## 快速开始
 
 1. 下载最新发布版本
