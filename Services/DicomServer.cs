@@ -106,7 +106,7 @@ public sealed class DicomServer : IDisposable
                     Encoding.UTF8,
                     _loggerFactory.CreateLogger<CStoreSCP>());
 
-                DicomLogger.Information("DICOM", "C-STORE服务已启动 - AET: {AeTitle}, 端口: {Port}", 
+                DicomLogger.Information("DICOM", "接收归档服务已启动 - AET: {AeTitle}, 端口: {Port}", 
                     _settings.AeTitle, _settings.StoreSCPPort);
             }
             catch (Exception ex)
@@ -124,7 +124,7 @@ public sealed class DicomServer : IDisposable
                     Encoding.UTF8,
                     _loggerFactory.CreateLogger<WorklistSCP>());
 
-                DicomLogger.Information("DICOM", "Worklist服务已启动 - AET: {AeTitle}, 端口: {Port}", 
+                DicomLogger.Information("DICOM", "病人列表服务已启动 - AET: {AeTitle}, 端口: {Port}", 
                     _settings.WorklistSCP.AeTitle, _settings.WorklistSCP.Port);
             }
             catch (Exception ex)
@@ -143,7 +143,7 @@ public sealed class DicomServer : IDisposable
                     _loggerFactory.CreateLogger<QRSCP>(),
                     _repository);
 
-                DicomLogger.Information("DICOM", "QR服务已启动 - AET: {AeTitle}, 端口: {Port}", 
+                DicomLogger.Information("DICOM", "查询检索服务已启动 - AET: {AeTitle}, 端口: {Port}", 
                     _settings.QRSCP.AeTitle, _settings.QRSCP.Port);
             }
             catch (Exception ex)
@@ -161,7 +161,7 @@ public sealed class DicomServer : IDisposable
                     Encoding.UTF8,
                     _loggerFactory.CreateLogger<PrintSCP>());
 
-                DicomLogger.Information("DICOM", "打印服务已启动 - AET: {AeTitle}, 端口: {Port}", 
+                DicomLogger.Information("DICOM", "胶片打印服务已启动 - AET: {AeTitle}, 端口: {Port}", 
                     _settings.PrintSCP.AeTitle, _settings.PrintSCP.Port);
             }
             catch (Exception ex)
