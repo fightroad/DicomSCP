@@ -6,7 +6,7 @@
 - 另有完整商业版云RIS/PACS（区域云影像）和云胶片（数字胶片）解决方案助力紧密型医共体和医保影像云，有相关需求可以联系咨询！ 微信/QQ同号：30760655
 - [项目Gitee仓库](https://gitee.com/fightroad/DicomSCP)  |  [项目GitHub仓库](https://github.com/fightroad/DicomSCP) 
 
-## 整体解决方案商业版部分功能预览
+## 整体解决方案部分功能预览
 ![后台管理](about/后台管理.png)
 ![商业ris](about/商业报告.png)
 ![Risreport](about/risreport.png)
