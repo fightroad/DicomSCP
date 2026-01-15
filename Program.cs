@@ -315,6 +315,60 @@ app.MapGet("/", context =>
     return Task.CompletedTask;
 });
 
+// 启动完成后输出管理系统地址
+app.Lifetime.ApplicationStarted.Register(() =>
+{
+    // 从配置读取地址，没有就用默认值
+    var httpUrl = builder.Configuration["Kestrel:Endpoints:Http:Url"] ?? "http://localhost:5000";
+    
+    // 提取端口号
+    var port = "5000";
+    if (httpUrl.Contains(":"))
+    {
+        var parts = httpUrl.Split(':');
+        if (parts.Length >= 3)
+        {
+            port = parts[parts.Length - 1];
+        }
+    }
+    
+    // 获取本地IP地址
+    string? localIp = null;
+    try
+    {
+        var hostEntry = System.Net.Dns.GetHostEntry(System.Net.Dns.GetHostName());
+        foreach (var ip in hostEntry.AddressList)
+        {
+            if (ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+            {
+                localIp = ip.ToString();
+                break;
+            }
+        }
+    }
+    catch
+    {
+        // 忽略获取IP地址的错误
+    }
+    
+    Console.WriteLine("═══════════════════════════════════════════════════════════");
+    Console.WriteLine("   DICOM SCP 服务器启动成功！");
+    Console.WriteLine("═══════════════════════════════════════════════════════════");
+    Console.WriteLine($"   监听地址: {httpUrl}");
+    
+    if (!string.IsNullOrEmpty(localIp))
+    {
+        Console.WriteLine($"   管理系统地址: http://{localIp}:{port}");
+    }
+    else
+    {
+        Console.WriteLine($"   管理系统地址: {httpUrl}");
+    }
+    
+    Console.WriteLine("═══════════════════════════════════════════════════════════");
+    Console.WriteLine();
+});
+
 app.Run(); 
 
 // Windows控制台API定义

@@ -51,8 +51,6 @@ public sealed class DicomServer : IDisposable
                 EnsureStorageDirectory();
                 StartDicomServices();
             });
-            
-            LogServerStartup();
         }
         catch (Exception ex)
         {
@@ -89,8 +87,7 @@ public sealed class DicomServer : IDisposable
     {
         try
         {
-            DicomLogger.Information("DICOM", "开始启动DICOM服务...");
-
+            Console.WriteLine("═══════════════════════════════════════════════════════════");
             // 配置存储服务
             CStoreSCP.Configure(_settings, _repository);
 
@@ -185,11 +182,6 @@ public sealed class DicomServer : IDisposable
             _printScp = null;
             throw;
         }
-    }
-
-    private void LogServerStartup()
-    {
-        DicomLogger.Information("DICOM", "DICOM服务启动完成...");
     }
 
     public async Task StopAsync()
