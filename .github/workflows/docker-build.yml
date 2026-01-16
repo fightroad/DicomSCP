@@ -1,6 +1,9 @@
 name: Docker Build and Push
 
 on:
+  push:
+    tags:
+      - 'v*'  # 推送以 v 开头的 tag 时触发（例如：v1.0.5）
   workflow_dispatch:  # 允许手动触发
     inputs:
       tag:
@@ -24,6 +27,16 @@ jobs:
       with:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
+      
+    - name: Extract tag name
+      id: tag
+      run: |
+        if [ "${{ github.event_name }}" == "push" ]; then
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          echo "tag=$TAG_NAME" >> $GITHUB_OUTPUT
+        else
+          echo "tag=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
+        fi
         
     - name: Build and push
       uses: docker/build-push-action@v5
@@ -32,7 +45,7 @@ jobs:
         push: true
         platforms: linux/amd64
         tags: |
-          fightroad/dicomscp:${{ github.event.inputs.tag }}
+          fightroad/dicomscp:${{ steps.tag.outputs.tag }}
           fightroad/dicomscp:latest
         cache-from: type=registry,ref=fightroad/dicomscp:buildcache
         cache-to: type=registry,ref=fightroad/dicomscp:buildcache,mode=max 
