@@ -47,14 +47,15 @@ Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 // 注册 DICOM 编码
 DicomEncoding.RegisterEncoding("GB2312", "GB2312");
 
-// 配置 Kestrel
+// 大文件上传：显式设置 Kestrel 与 Form 限制（全局配置有时不生效，这里强制生效）
+var maxBodySizeBytes = builder.Configuration.GetValue<long>("Kestrel:Limits:MaxRequestBodySize", 524288000);
 builder.WebHost.ConfigureKestrel(options =>
 {
-    options.Limits.KeepAliveTimeout = TimeSpan.FromMinutes(2);
-    options.Limits.RequestHeadersTimeout = TimeSpan.FromMinutes(1);
-    options.Limits.MaxConcurrentConnections = 100;
-    options.Limits.MaxConcurrentUpgradedConnections = 100;
-    options.Limits.MaxRequestBodySize = 52428800; // 50MB
+    options.Limits.MaxRequestBodySize = maxBodySizeBytes;
+});
+builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = maxBodySizeBytes;
 });
 
 // 取配置

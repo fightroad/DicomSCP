@@ -315,41 +315,13 @@
                             </dd>
                             
                             <dt>Kestrel</dt>
-                            <dd>Web服务器配置：
+                            <dd>Web 服务器配置：
                                 <ul>
-                                    <li>Endpoints.Http.Url - 监听地址和端口</li>
+                                    <li>Endpoints.Http.Url - 监听地址和端口，如：http://0.0.0.0:5000</li>
+                                    <li>Limits.MaxRequestBodySize - 单次请求 body 最大字节数，如 524288000 表示 500MB。用于限制上传大小，DICOM 上传建议设大一些</li>
                                 </ul>
+                                <p>其他 Limits（如并发连接数、超时等）使用框架默认值即可，无需在配置中指定。</p>
                             </dd>
-                        </dl>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 在其他配置后面添加新的配置项说明 -->
-            <div class="accordion-item">
-                <h2 class="accordion-header">
-                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#kestrelHelp">
-                        Kestrel服务器配置 (Kestrel)
-                    </button>
-                </h2>
-                <div id="kestrelHelp" class="accordion-collapse collapse">
-                    <div class="accordion-body">
-                        <dl>
-                            <dt>Endpoints.Http.Url</dt>
-                            <dd>HTTP监听地址和端口。如：http://0.0.0.0:5000</dd>
-
-                            <dt>Limits.MaxConcurrentConnections</dt>
-                            <dd>最大并发连接数，用于控制同时处理的最大连接数。默认：100</dd>
-
-                            <dt>Limits.MaxConcurrentUpgradedConnections</dt>
-                            <dd>最大并发升级连接数（如WebSocket）。默认：100</dd>
-
-                            <dt>Limits.KeepAliveTimeout</dt>
-                            <dd>保持连接超时时间，超过此时间的空闲连接将被关闭。格式：00:02:00（2分钟）</dd>
-
-                            <dt>Limits.RequestHeadersTimeout</dt>
-                            <dd>请求头超时时间，接收请求头的最大等待时间。格式：00:01:00（1分钟）</dd>
-
                         </dl>
                     </div>
                 </div>
