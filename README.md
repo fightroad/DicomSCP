@@ -228,7 +228,7 @@
 发布为自包含的单文件可执行程序：
 
 ```bash
-dotnet publish -c Release -r win-x64 /p:SelfContained=true /p:PublishSingleFile=true /p:DebugType=None /p:DebugSymbols=false
+dotnet publish -c Release -r win-x64 /p:SelfContained=true /p:PublishSingleFile=true /p:IncludeNativeLibrariesForSelfExtract=true /p:DebugType=None /p:DebugSymbols=false
 ```
 
 发布后的文件位于：`bin/Release/net8.0/win-x64/publish/DicomSCP.exe`
