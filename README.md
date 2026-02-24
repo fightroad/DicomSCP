@@ -4,6 +4,7 @@
 - 推荐使用 [Docker部署](#docker部署) 有推送会自动发布镜像。最新版本可以自行拉取dev分支构建，windows发行版不定期发布。
 - 项目用爱发电，作者多年医学影像从业者，旨在为中文医学影像提供一个免费的轻量级PACS解决方案。仅供大家学习参考，不限制使用，请遵守[MIT许可协议](LICENSE)。
 - 另有完整商业版云RIS/PACS（区域云影像）和云胶片（数字胶片）解决方案助力紧密型医共体和医保影像云，有相关需求可以联系咨询！ 微信/QQ同号：30760655
+- 商业版是RIS/PACS整体解决方案，开源服务是一个集成度比较高的DICOM相关服务集合。商业版和开源系统不是同一个东西。
 - [项目Gitee仓库](https://gitee.com/fightroad/DicomSCP)  |  [项目GitHub仓库](https://github.com/fightroad/DicomSCP) 
 
 ## 整体解决方案部分功能预览
