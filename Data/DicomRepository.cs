@@ -9,13 +9,14 @@ using System.Text;
 using System.Data;
 using Microsoft.Extensions.Options;
 using DicomSCP.Configuration;
+using AsyncKeyedLock;
 
 namespace DicomSCP.Data;
 
 public class DicomRepository : BaseRepository, IDisposable
 {
     private readonly ConcurrentQueue<(DicomDataset Dataset, string FilePath)> _dataQueue = new();
-    private readonly SemaphoreSlim _processSemaphore = new(1, 1);
+    private readonly AsyncNonKeyedLocker _processSemaphore = new();
     private readonly Timer _processTimer;
     private readonly int _batchSize;
     private readonly TimeSpan _maxWaitTime = TimeSpan.FromSeconds(10);
@@ -264,7 +265,9 @@ public class DicomRepository : BaseRepository, IDisposable
 
     private async Task ProcessBatchWithRetryAsync()
     {
-        if (!await _processSemaphore.WaitAsync(TimeSpan.FromSeconds(1)))
+        using var semLock = await _processSemaphore.LockOrNullAsync(TimeSpan.FromSeconds(1));
+
+        if (semLock is null)
         {
             return;
         }
@@ -370,10 +373,6 @@ public class DicomRepository : BaseRepository, IDisposable
         catch (Exception ex)
         {
             LogError(ex, "处理批次时发生异常");
-        }
-        finally
-        {
-            _processSemaphore.Release();
         }
     }
 
@@ -599,16 +598,10 @@ public class DicomRepository : BaseRepository, IDisposable
                     try
                     {
                         // 同步处理剩余数据
-                        if (_processSemaphore.Wait(TimeSpan.FromSeconds(30)))  // 给足够的等待时间
+                        using var semLock = _processSemaphore.LockOrNull(TimeSpan.FromSeconds(30)); // 给足够的等待时间
+                        if (semLock is not null)
                         {
-                            try
-                            {
-                                ProcessBatchWithRetryAsync().GetAwaiter().GetResult();
-                            }
-                            finally
-                            {
-                                _processSemaphore.Release();
-                            }
+                            ProcessBatchWithRetryAsync().GetAwaiter().GetResult();
                         }
                     }
                     catch (Exception ex)

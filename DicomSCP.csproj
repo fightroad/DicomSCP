@@ -27,6 +27,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="AsyncKeyedLock" Version="8.0.2" />
     <PackageReference Include="fo-dicom" Version="5.2.5" />
     <PackageReference Include="System.Text.Encoding.CodePages" Version="8.0.0" />
     <PackageReference Include="fo-dicom.Codecs" Version="5.16.4" />
