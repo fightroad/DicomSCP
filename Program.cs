@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication;
 using System.Runtime.InteropServices;
 using Microsoft.AspNetCore.Rewrite;
+using DicomSCP.Middlewares;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -242,9 +243,6 @@ if (isFirstInitialization)
 {
     DicomLogger.Information("Database", "[DB] 数据库表首次初始化完成");
 }
-
-// 初始化服务提供者
-DicomServiceProvider.Initialize(app.Services);
 
 // 获取服务
 var dicomRepository = app.Services.GetRequiredService<DicomRepository>();

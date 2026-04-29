@@ -1,17 +1,13 @@
 using System.Diagnostics;
 using DicomSCP.Configuration;
 using Serilog.Events;
+using DicomSCP.Services;
 
-namespace DicomSCP.Services;
+namespace DicomSCP.Middlewares;
 
-public class ApiLoggingMiddleware
+public class ApiLoggingMiddleware(RequestDelegate next)
 {
-    private readonly RequestDelegate _next;
-
-    public ApiLoggingMiddleware(RequestDelegate next)
-    {
-        _next = next;
-    }
+    private readonly RequestDelegate _next = next;
 
     public static void ConfigureLogging(LogSettings settings)
     {

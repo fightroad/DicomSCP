@@ -8,14 +8,12 @@ using DicomSCP.Repository;
 namespace DicomSCP.Services;
 
 public sealed class DicomServer(
-    IConfiguration configuration,
     ILoggerFactory loggerFactory,
     IOptions<DicomSettings> settings,
     DicomRepository repository,
     DicomDatasetPersistence persistence) : IDisposable
 {
     private readonly DicomSettings _settings = settings?.Value ?? throw new ArgumentNullException(nameof(settings));
-    private readonly IConfiguration _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
     private readonly ILoggerFactory _loggerFactory = loggerFactory ?? throw new ArgumentNullException(nameof(loggerFactory));
     private readonly DicomRepository _repository = repository ?? throw new ArgumentNullException(nameof(repository));
     private readonly DicomDatasetPersistence _persistence = persistence ?? throw new ArgumentNullException(nameof(persistence));
@@ -25,7 +23,6 @@ public sealed class DicomServer(
     private IDicomServer? _qrScp;
     private IDicomServer? _printScp;
     private bool _disposed;
-    private readonly Dictionary<string, IDicomServer> _servers = new Dictionary<string, IDicomServer>();
 
     public bool IsRunning => _storeScp != null || _worklistScp != null || _qrScp != null || _printScp != null;
 
@@ -88,6 +85,12 @@ public sealed class DicomServer(
             WorklistSCP.Configure(
                 _settings,
                 _repository);
+
+            // 配置查询检索服务
+            QRSCP.Configure(_settings, _repository);
+
+            // 配置打印服务
+            PrintSCP.Configure(_settings, _repository);
 
             try
             {
