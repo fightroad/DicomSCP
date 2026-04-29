@@ -3,17 +3,11 @@ using Microsoft.Data.Sqlite;
 using DicomSCP.Models;
 using System.Text;
 
-namespace DicomSCP.Data;
+namespace DicomSCP.Repository;
 
-public class WorklistRepository : BaseRepository
+public class WorklistRepository(
+    IConfiguration configuration) : BaseRepository(configuration.GetConnectionString("DicomDb") ?? throw new ArgumentException("Missing DicomDb connection string"))
 {
-    public WorklistRepository(
-        IConfiguration configuration,
-        Microsoft.Extensions.Logging.ILogger<WorklistRepository> logger)
-        : base(configuration.GetConnectionString("DicomDb") ?? throw new ArgumentException("Missing DicomDb connection string"), logger)
-    {
-    }
-
     public async Task<IEnumerable<WorklistItem>> GetAllAsync()
     {
         LogDebug("正在查询所有Worklist项目");

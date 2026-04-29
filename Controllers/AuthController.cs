@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
-using DicomSCP.Data;
+using DicomSCP.Repository;
 using DicomSCP.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;

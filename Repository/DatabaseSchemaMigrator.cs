@@ -2,7 +2,7 @@ using Dapper;
 using Microsoft.Data.Sqlite;
 using System.Data;
 
-namespace DicomSCP.Data;
+namespace DicomSCP.Repository;
 
 /// <summary>
 /// 数据库结构迁移器：集中管理历史数据库字段升级。

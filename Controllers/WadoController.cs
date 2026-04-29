@@ -1,4 +1,4 @@
-using DicomSCP.Data;
+using DicomSCP.Repository;
 using DicomSCP.Configuration;
 using DicomSCP.Services;
 using FellowOakDicom;

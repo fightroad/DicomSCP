@@ -1,7 +1,7 @@
 using Dapper;
 using Microsoft.Data.Sqlite;
 
-namespace DicomSCP.Data;
+namespace DicomSCP.Repository;
 
 /// <summary>
 /// 数据库初始化器：负责建表、初始化数据和结构迁移。

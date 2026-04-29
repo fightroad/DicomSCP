@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using DicomSCP.Configuration;
 using DicomSCP.Services;
-using DicomSCP.Data;
+using DicomSCP.Repository;
 using System.Management;
 using System.Diagnostics;
 using System.Runtime.InteropServices;

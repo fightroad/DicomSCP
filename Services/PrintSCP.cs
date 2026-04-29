@@ -2,7 +2,7 @@ using System.Text;
 using FellowOakDicom;
 using FellowOakDicom.Network;
 using DicomSCP.Configuration;
-using DicomSCP.Data;
+using DicomSCP.Repository;
 using DicomSCP.Models;
 using Microsoft.Extensions.Options;
 

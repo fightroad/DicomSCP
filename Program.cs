@@ -4,7 +4,7 @@ using Serilog;
 using Serilog.Events;
 using DicomSCP.Configuration;
 using DicomSCP.Services;
-using DicomSCP.Data;
+using DicomSCP.Repository;
 using Microsoft.OpenApi.Models;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -74,7 +74,7 @@ var logSettings = builder.Configuration
 DicomLogger.Initialize(logSettings);
 
 // 初始化数据库日志
-BaseRepository.ConfigureLogging(logSettings);
+BaseRepository.ConfigureLogging();
 
 // 初始化API日志
 ApiLoggingMiddleware.ConfigureLogging(logSettings);

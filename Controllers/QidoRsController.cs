@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using DicomSCP.Data;
+using DicomSCP.Repository;
 using System.Text.Json;
 using DicomSCP.Services;
 using DicomSCP.Models;

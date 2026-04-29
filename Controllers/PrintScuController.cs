@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using DicomSCP.Services;
 using DicomSCP.Models;
-using DicomSCP.Data;
+using DicomSCP.Repository;
 using DicomSCP.Configuration;
 using System.ComponentModel.DataAnnotations;
 using Microsoft.Extensions.Options;

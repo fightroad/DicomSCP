@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using DicomSCP.Data;
+using DicomSCP.Repository;
 using DicomSCP.Configuration;
 using FellowOakDicom;
 using FellowOakDicom.Imaging;

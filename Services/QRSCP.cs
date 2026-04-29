@@ -5,7 +5,7 @@ using FellowOakDicom.Network.Client;
 using FellowOakDicom.Imaging.Codec;
 using Microsoft.Extensions.Options;
 using DicomSCP.Configuration;
-using DicomSCP.Data;
+using DicomSCP.Repository;
 using DicomSCP.Models;
 using System.Collections.Concurrent;  // 添加这个引用
 

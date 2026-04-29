@@ -1,4 +1,4 @@
-namespace DicomSCP.Data;
+namespace DicomSCP.Repository;
 
 /// <summary>
 /// 数据库建表与初始化相关 SQL。

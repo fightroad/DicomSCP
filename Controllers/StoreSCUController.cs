@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using DicomSCP.Services;
 using DicomSCP.Configuration;
 using Microsoft.Extensions.Options;
-using DicomSCP.Data;
+using DicomSCP.Repository;
 
 namespace DicomSCP.Controllers;
 

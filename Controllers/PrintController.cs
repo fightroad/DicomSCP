@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
-using DicomSCP.Data;
+using DicomSCP.Repository;
 using DicomSCP.Models;
 using FellowOakDicom;
 using FellowOakDicom.Imaging;

@@ -6,10 +6,10 @@ using System.Text;
 using Microsoft.Extensions.Options;
 using DicomSCP.Configuration;
 
-namespace DicomSCP.Data;
+namespace DicomSCP.Repository;
 
-public class DicomRepository(IConfiguration configuration, ILogger<DicomRepository> logger, IOptions<DicomSettings> settings)
-    : BaseRepository(configuration.GetConnectionString("DicomDb") ?? throw new ArgumentException("Missing DicomDb connection string"), logger)
+public class DicomRepository(IConfiguration configuration, IOptions<DicomSettings> settings)
+    : BaseRepository(configuration.GetConnectionString("DicomDb") ?? throw new ArgumentException("Missing DicomDb connection string"))
 {
     private readonly DicomSettings _settings = settings.Value;
 

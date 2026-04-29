@@ -1,4 +1,4 @@
-using DicomSCP.Data;
+using DicomSCP.Repository;
 using DicomSCP.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

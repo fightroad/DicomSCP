@@ -2,18 +2,13 @@ using Dapper;
 using DicomSCP.Models;
 using Microsoft.Data.Sqlite;
 
-namespace DicomSCP.Data;
+namespace DicomSCP.Repository;
 
 /// <summary>
 /// 检查（Study）基础信息更新命令。
 /// </summary>
-public sealed class StudyBasicInfoRepository : BaseRepository
+public sealed class StudyBasicInfoRepository(IConfiguration configuration) : BaseRepository(configuration.GetConnectionString("DicomDb") ?? throw new ArgumentException("Missing DicomDb connection string"))
 {
-    public StudyBasicInfoRepository(IConfiguration configuration, ILogger<StudyBasicInfoRepository> logger)
-        : base(configuration.GetConnectionString("DicomDb") ?? throw new ArgumentException("Missing DicomDb connection string"), logger)
-    {
-    }
-
     public async Task<bool> UpdateStudyBasicInfoAsync(string studyInstanceUid, StudyUpdateRequest request)
     {
         if (string.IsNullOrWhiteSpace(studyInstanceUid))

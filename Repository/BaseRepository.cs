@@ -1,27 +1,21 @@
-using DicomSCP.Configuration;
 using DicomSCP.Services;
 using Microsoft.Data.Sqlite;
 
-namespace DicomSCP.Data;
+namespace DicomSCP.Repository;
 
 /// <summary>
 /// 数据仓储基类，提供基础的日志功能
 /// </summary>
-public abstract class BaseRepository
+public abstract class BaseRepository(string connectionString)
 {
-    protected readonly string _connectionString;
-
-    protected BaseRepository(string connectionString, Microsoft.Extensions.Logging.ILogger logger)
-    {
-        _connectionString = connectionString;
-    }
+    protected readonly string _connectionString = connectionString;
 
     protected SqliteConnection CreateConnection()
     {
         return new SqliteConnection(_connectionString);
     }
 
-    public static void ConfigureLogging(LogSettings settings)
+    public static void ConfigureLogging()
     {
         // 不再需要独立的日志配置，使用 DicomLogger
     }

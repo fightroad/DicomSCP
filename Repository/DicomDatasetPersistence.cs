@@ -7,7 +7,7 @@ using System.Data;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 
-namespace DicomSCP.Data;
+namespace DicomSCP.Repository;
 
 /// <summary>
 /// 负责 DICOM 数据集解析与批量入库（含队列批处理）。
