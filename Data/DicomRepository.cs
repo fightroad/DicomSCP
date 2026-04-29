@@ -208,6 +208,7 @@ public class DicomRepository(IConfiguration configuration, ILogger<DicomReposito
         string? patientId = null,
         string? patientName = null,
         string? accessionNumber = null,
+        string? keyword = null,
         string? modality = null,
         DateTime? startDate = null,
         DateTime? endDate = null)
@@ -249,6 +250,12 @@ public class DicomRepository(IConfiguration configuration, ILogger<DicomReposito
         {
             sql.Append(" AND s.AccessionNumber LIKE @AccessionNumber");
             parameters.Add("@AccessionNumber", $"%{accessionNumber}%");
+        }
+
+        if (!string.IsNullOrWhiteSpace(keyword))
+        {
+            sql.Append(" AND s.Remark LIKE @Keyword");
+            parameters.Add("@Keyword", $"%{keyword.Trim()}%");
         }
 
         if (!string.IsNullOrEmpty(modality))

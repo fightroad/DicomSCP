@@ -42,6 +42,7 @@ public class ImagesController : ControllerBase
         [FromQuery] string? patientId = null,
         [FromQuery] string? patientName = null,
         [FromQuery] string? accessionNumber = null,
+        [FromQuery] string? keyword = null,
         [FromQuery] string? modality = null,
         [FromQuery] string? studyDate = null)
     {
@@ -63,6 +64,7 @@ public class ImagesController : ControllerBase
                 patientId, 
                 patientName, 
                 accessionNumber, 
+                keyword,
                 modality, 
                 searchDate,    // 开始时间
                 searchDate?.AddDays(1).AddSeconds(-1)  // 结束时间设为当天最后一秒
