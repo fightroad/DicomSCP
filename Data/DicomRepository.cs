@@ -846,7 +846,7 @@ public class DicomRepository(IConfiguration configuration, ILogger<DicomReposito
                 StartDate = dateRange.StartDate,
                 EndDate = dateRange.EndDate,
                 ModCount = modalities?.Length ?? 0,
-                Modalities = (modalities?.Length ?? 0) > 0 ? modalities : new[] { "" },
+                Modalities = (modalities?.Length ?? 0) > 0 ? modalities : [""],
                 StudyInstanceUid = studyInstanceUid ?? "",
                 Offset = offset,
                 Limit = limit
@@ -858,7 +858,7 @@ public class DicomRepository(IConfiguration configuration, ILogger<DicomReposito
             var totalCount = connection.ExecuteScalar<int>(countSql, parameters);
 
             var studies = connection.Query<Study>(sql, parameters);
-            var result = studies?.ToList() ?? new List<Study>();
+            var result = studies?.ToList() ?? [];
             
             LogInformation("检查查询完成 - 返回记录数: {Count}/{Total}, 日期范围: {StartDate} - {EndDate}, StudyInstanceUID: {StudyUID}", 
                 result.Count, totalCount, dateRange.StartDate ?? "", dateRange.EndDate ?? "", studyInstanceUid ?? "");
@@ -868,7 +868,7 @@ public class DicomRepository(IConfiguration configuration, ILogger<DicomReposito
         catch (Exception ex)
         {
             LogError(ex, "检查查询失败");
-            return new List<Study>();
+            return [];
         }
     }
 
@@ -887,7 +887,7 @@ public class DicomRepository(IConfiguration configuration, ILogger<DicomReposito
 
     public List<Configuration.PrinterConfig> GetPrinters()
     {
-        return _settings.PrintSCU?.Printers ?? new List<Configuration.PrinterConfig>();
+        return _settings.PrintSCU?.Printers ?? [];
     }
 
     public async Task<IEnumerable<Series>> GetSeriesAsync(string studyInstanceUid)

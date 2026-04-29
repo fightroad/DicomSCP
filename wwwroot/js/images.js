@@ -5,7 +5,7 @@ const imagesPageSize = 10;
 // 加载影像数据
 async function loadImages(page = 1) {
     const tbody = document.getElementById('images-table-body');
-    showTableLoading(tbody, 8);  // 影像列表有8列
+    showTableLoading(tbody, 9);  // 影像列表有9列
 
     try {
         const patientId = document.getElementById('images-searchPatientId')?.value || '';
@@ -28,7 +28,7 @@ async function loadImages(page = 1) {
         const result = response.data;
 
         if (result.items.length === 0) {
-            showEmptyTable(tbody, '暂无影像数据', 8);
+            showEmptyTable(tbody, '暂无影像数据', 9);
             return;
         }
 
@@ -40,7 +40,7 @@ async function loadImages(page = 1) {
         
     } catch (error) {
         handleError(error, '加载影像失败');
-        showEmptyTable(tbody, '加载失败，请重试', 8);
+        showEmptyTable(tbody, '加载失败，请重试', 9);
     }
 }
 
@@ -56,23 +56,28 @@ function displayImages(items) {
         const tr = document.createElement('tr');
         tr.setAttribute('onclick', 'toggleSeriesInfo(this)');
         tr.setAttribute('data-study-uid', item.studyInstanceUid);
+        tr.dataset.itemJson = JSON.stringify(item);
         tr.innerHTML = `
-            <td>${item.patientId || ''}</td>
-            <td>${item.patientName || ''}</td>
-            <td>${item.accessionNumber || ''}</td>
-            <td>${item.modality || ''}</td>
-            <td>${formatDate(item.studyDate) || ''}</td>
-            <td>${item.studyDescription || ''}</td>
+            <td title="${escapeHtml(item.patientId || '')}">${escapeHtml(item.patientId || '')}</td>
+            <td title="${escapeHtml(item.patientName || '')}">${escapeHtml(item.patientName || '')}</td>
+            <td title="${escapeHtml(item.accessionNumber || '')}">${escapeHtml(item.accessionNumber || '')}</td>
+            <td title="${escapeHtml(item.modality || '')}">${escapeHtml(item.modality || '')}</td>
+            <td title="${escapeHtml(formatDate(item.studyDate) || '')}">${escapeHtml(formatDate(item.studyDate) || '')}</td>
+            <td title="${escapeHtml(item.studyDescription || '')}">${escapeHtml(item.studyDescription || '')}</td>
             <td>${item.numberOfInstances || 0}</td>
-            <td>
+            <td title="${escapeHtml(item.remark || '')}">${escapeHtml(item.remark || '')}</td>
+            <td class="images-actions">
                 <button class="btn btn-sm btn-primary me-1" onclick="openOHIF('${item.studyInstanceUid}', event)" title="OHIF预览">
-                    <i class="bi bi-eye me-1"></i>OHIF
+                    <i class="bi bi-eye"></i> OHIF
                 </button>
                 <button class="btn btn-sm btn-primary me-1" onclick="openWeasis('${item.studyInstanceUid}', event)" title="Weasis预览">
-                    <i class="bi bi-eye me-1"></i>Weasis
+                    <i class="bi bi-eye"></i> Wsis
+                </button>
+                <button class="btn btn-sm btn-secondary me-1" onclick="openEditStudy('${item.studyInstanceUid}', event)" title="编辑基本信息">
+                    <i class="bi bi-pencil-square"></i> 编辑
                 </button>
                 <button class="btn btn-sm btn-danger" onclick="deleteStudy('${item.studyInstanceUid}', event)" title="删除">
-                    <i class="bi bi-trash me-1"></i>删除
+                    <i class="bi bi-trash"></i> 删除
                 </button>
             </td>
         `;
@@ -202,6 +207,151 @@ async function deleteStudy(studyInstanceUid, event) {
     }
 }
 
+function dicomDateToInput(dateStr) {
+    if (!dateStr || dateStr.length !== 8) return '';
+    return `${dateStr.substring(0, 4)}-${dateStr.substring(4, 6)}-${dateStr.substring(6, 8)}`;
+}
+
+function inputDateToDicom(dateStr) {
+    if (!dateStr) return '';
+    return dateStr.replace(/-/g, '');
+}
+
+function getStudyItemFromRow(studyInstanceUid) {
+    const row = document.querySelector(`tr[data-study-uid="${CSS.escape(studyInstanceUid)}"]`);
+    if (!row?.dataset?.itemJson) return null;
+    try {
+        return JSON.parse(row.dataset.itemJson);
+    } catch {
+        return null;
+    }
+}
+
+function openEditStudy(studyInstanceUid, event) {
+    if (event) {
+        event.stopPropagation();
+    }
+
+    const item = getStudyItemFromRow(studyInstanceUid) || {};
+
+    // 移除已存在的对话框
+    const existing = document.getElementById('editStudyDialog');
+    if (existing) existing.remove();
+
+    const dialogHtml = `
+        <div class="modal fade" id="editStudyDialog" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">编辑检查基本信息</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="editStudyForm">
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label">患者姓名</label>
+                                    <input class="form-control" name="patientName" value="${escapeHtml(item.patientName || '')}" />
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">性别</label>
+                                    <select class="form-select" name="patientSex">
+                                        <option value="" ${!item.patientSex ? 'selected' : ''}>未设置</option>
+                                        <option value="M" ${item.patientSex === 'M' ? 'selected' : ''}>男(M)</option>
+                                        <option value="F" ${item.patientSex === 'F' ? 'selected' : ''}>女(F)</option>
+                                        <option value="O" ${item.patientSex === 'O' ? 'selected' : ''}>其他(O)</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">生日</label>
+                                    <input type="date" class="form-control" name="patientBirthDate" value="${dicomDateToInput(item.patientBirthDate || '')}" />
+                                </div>
+
+                                <div class="col-md-4">
+                                    <label class="form-label">检查日期</label>
+                                    <input type="date" class="form-control" name="studyDate" value="${dicomDateToInput(item.studyDate || '')}" />
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">检查号</label>
+                                    <input class="form-control" name="accessionNumber" value="${escapeHtml(item.accessionNumber || '')}" />
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">机构</label>
+                                    <input class="form-control" name="institutionName" value="${escapeHtml(item.institutionName || '')}" />
+                                </div>
+
+                                <div class="col-12">
+                                    <label class="form-label">检查描述</label>
+                                    <input class="form-control" name="studyDescription" value="${escapeHtml(item.studyDescription || '')}" />
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">备注</label>
+                                    <textarea class="form-control" name="remark" rows="3">${escapeHtml(item.remark || '')}</textarea>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                        <button type="button" class="btn btn-primary" id="editStudySaveBtn">
+                            <i class="bi bi-check2 me-1"></i>保存
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', dialogHtml);
+
+    const dialogEl = document.getElementById('editStudyDialog');
+    const modal = new bootstrap.Modal(dialogEl, { backdrop: 'static', keyboard: true });
+
+    dialogEl.addEventListener('hidden.bs.modal', function () {
+        dialogEl.remove();
+    });
+
+    const saveBtn = document.getElementById('editStudySaveBtn');
+    saveBtn.addEventListener('click', async () => {
+        const form = document.getElementById('editStudyForm');
+        const fd = new FormData(form);
+
+        const payload = {
+            patientName: (fd.get('patientName') || '').toString(),
+            patientSex: (fd.get('patientSex') || '').toString(),
+            patientBirthDate: inputDateToDicom((fd.get('patientBirthDate') || '').toString()),
+            studyDate: inputDateToDicom((fd.get('studyDate') || '').toString()),
+            accessionNumber: (fd.get('accessionNumber') || '').toString(),
+            institutionName: (fd.get('institutionName') || '').toString(),
+            studyDescription: (fd.get('studyDescription') || '').toString(),
+            remark: (fd.get('remark') || '').toString()
+        };
+
+        try {
+            saveBtn.disabled = true;
+            await axios.put(`/api/images/${encodeURIComponent(studyInstanceUid)}`, payload);
+            window.showToast('更新成功', 'success');
+            modal.hide();
+            await loadImages(imagesCurrentPage);
+        } catch (error) {
+            handleError(error, '更新失败');
+        } finally {
+            saveBtn.disabled = false;
+        }
+    });
+
+    modal.show();
+}
+
+function escapeHtml(str) {
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 // 切换序列信息显示
 async function toggleSeriesInfo(row) {
     const studyUid = $(row).data('study-uid');
@@ -216,7 +366,7 @@ async function toggleSeriesInfo(row) {
         // 显示加载动画
         const loadingRow = $(`
             <tr class="series-info">
-                <td colspan="8" class="text-center py-3">
+                <td colspan="9" class="text-center py-3">
                     <div class="spinner-border text-primary" role="status">
                         <span class="visually-hidden">加载中...</span>
                     </div>
@@ -231,7 +381,7 @@ async function toggleSeriesInfo(row) {
         // 创建序列信息行
         const seriesInfoRow = $(`
             <tr class="series-info">
-                <td colspan="8">
+                <td colspan="9">
                     <div class="series-container">
                         <table class="table table-sm table-bordered series-detail-table">
                             <thead>
@@ -347,8 +497,6 @@ function openWeasis(studyUid, event) {
             document.body.removeChild(link);
         }, 100);
 
-        // 显示提示
-        window.showToast('正在启动Weasis...', 'info');
     } catch (error) {
         console.error('打开Weasis失败:', error);
         window.showToast('打开Weasis失败', 'error');

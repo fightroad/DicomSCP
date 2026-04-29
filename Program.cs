@@ -133,6 +133,7 @@ builder.Services
     .AddTranscoderManager<NativeTranscoderManager>();
 
 builder.Services.AddSingleton<DicomRepository>();
+builder.Services.AddSingleton<StudyBasicInfoRepository>();
 builder.Services.AddSingleton<DicomDatasetPersistence>();
 builder.Services.AddSingleton<DicomServer>();
 builder.Services.AddSingleton<WorklistRepository>();

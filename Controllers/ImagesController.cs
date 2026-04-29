@@ -12,15 +12,18 @@ namespace DicomSCP.Controllers;
 public class ImagesController : ControllerBase
 {
     private readonly DicomRepository _repository;
+    private readonly StudyBasicInfoRepository _studyBasicInfoRepository;
     private readonly IConfiguration _configuration;
     private readonly IWebHostEnvironment _environment;
 
     public ImagesController(
-        DicomRepository repository, 
+        DicomRepository repository,
+        StudyBasicInfoRepository studyBasicInfoRepository,
         IConfiguration configuration,
         IWebHostEnvironment environment)
     {
         _repository = repository;
+        _studyBasicInfoRepository = studyBasicInfoRepository;
         _configuration = configuration;
         _environment = environment;
 
@@ -157,6 +160,31 @@ public class ImagesController : ControllerBase
         {
             DicomLogger.Error("Api", ex, "[API] 删除检查失败 - StudyUID: {StudyUID}", studyInstanceUid);
             return StatusCode(500, new { error = "删除失败，请重试" });
+        }
+    }
+
+    [HttpPut("{studyInstanceUid}")]
+    public async Task<IActionResult> UpdateStudy(string studyInstanceUid, [FromBody] StudyUpdateRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(studyInstanceUid))
+        {
+            return BadRequest("StudyInstanceUID is required");
+        }
+
+        try
+        {
+            var ok = await _studyBasicInfoRepository.UpdateStudyBasicInfoAsync(studyInstanceUid, request);
+            if (!ok)
+            {
+                return BadRequest("No fields to update");
+            }
+
+            return Ok(new { Message = "更新成功" });
+        }
+        catch (Exception ex)
+        {
+            DicomLogger.Error("Api", ex, "[API] 更新检查信息失败 - StudyInstanceUID: {StudyInstanceUid}", studyInstanceUid);
+            return StatusCode(500, "更新失败");
         }
     }
 
