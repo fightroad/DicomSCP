@@ -107,6 +107,7 @@ public class StudyInfo
     public string Modality { get; set; } = string.Empty;
     public string StudyDate { get; set; } = string.Empty;
     public string StudyDescription { get; set; } = string.Empty;
+    public string Remark { get; set; } = string.Empty;
     public int NumberOfInstances { get; set; }
 }
 

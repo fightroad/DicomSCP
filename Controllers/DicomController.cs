@@ -10,21 +10,16 @@ namespace DicomSCP.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class DicomController : ControllerBase
+public class DicomController(
+    DicomServer server,
+    IOptions<DicomSettings> settings,
+    DicomRepository repository,
+    DicomDatasetPersistence persistence) : ControllerBase
 {
-    private readonly DicomServer _server;
-    private readonly DicomSettings _settings;
-    private readonly DicomRepository _repository;
-
-    public DicomController(
-        DicomServer server,
-        IOptions<DicomSettings> settings,
-        DicomRepository repository)
-    {
-        _server = server;
-        _settings = settings.Value;
-        _repository = repository;
-    }
+    private readonly DicomServer _server = server;
+    private readonly DicomSettings _settings = settings.Value;
+    private readonly DicomRepository _repository = repository;
+    private readonly DicomDatasetPersistence _persistence = persistence;
 
     [HttpGet("status")]
     public IActionResult GetStatus()
@@ -310,7 +305,7 @@ public class DicomController : ControllerBase
                 });
             }
 
-            CStoreSCP.Configure(_settings, _repository);
+            CStoreSCP.Configure(_settings, _persistence);
 
             await _server.StartAsync();
             DicomLogger.Information("Api",

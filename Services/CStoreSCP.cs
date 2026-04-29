@@ -36,7 +36,7 @@ public class CStoreSCP : DicomService, IDicomServiceProvider, IDicomCStoreProvid
     private static string? StoragePath;
     private static string? TempPath;
     private static DicomSettings? GlobalSettings;
-    private static DicomRepository? _repository;
+    private static DicomDatasetPersistence? _persistence;
 
     private readonly DicomSettings _settings;
     private readonly SemaphoreSlim _concurrentLimit;
@@ -54,7 +54,7 @@ public class CStoreSCP : DicomService, IDicomServiceProvider, IDicomCStoreProvid
     };
 
 
-    public static void Configure(DicomSettings settings, DicomRepository repository)
+    public static void Configure(DicomSettings settings, DicomDatasetPersistence persistence)
     {
         if (string.IsNullOrEmpty(settings.StoragePath) || string.IsNullOrEmpty(settings.TempPath))
         {
@@ -64,7 +64,7 @@ public class CStoreSCP : DicomService, IDicomServiceProvider, IDicomCStoreProvid
         StoragePath = settings.StoragePath;
         TempPath = settings.TempPath;
         GlobalSettings = settings;
-        _repository = repository;
+        _persistence = persistence;
         
         // 确保目录存在
         Directory.CreateDirectory(StoragePath);
@@ -657,16 +657,12 @@ public class CStoreSCP : DicomService, IDicomServiceProvider, IDicomCStoreProvid
                         new FileInfo(targetFilePath).Length);
 
                     // 在保存到数据库之前处理文本字段
-                    if (_repository != null)
+                    if (_persistence != null)
                     {
                         try
                         {
                             // 直接使用原始数据集
-                            await _repository.SaveDicomDataAsync(request.Dataset, relativePath);
-
-                            // 更新 Study 的 Modality
-                            var modality = request.Dataset.GetSingleValueOrDefault<string>(DicomTag.Modality, string.Empty);
-                            await _repository.UpdateStudyModalityAsync(studyUid, modality);
+                            await _persistence.SaveDicomDataAsync(request.Dataset, relativePath);
                         }
                         catch (Exception ex)
                         {

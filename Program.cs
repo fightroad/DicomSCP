@@ -133,6 +133,7 @@ builder.Services
     .AddTranscoderManager<NativeTranscoderManager>();
 
 builder.Services.AddSingleton<DicomRepository>();
+builder.Services.AddSingleton<DicomDatasetPersistence>();
 builder.Services.AddSingleton<DicomServer>();
 builder.Services.AddSingleton<WorklistRepository>();
 builder.Services.AddSingleton<IStoreSCU, StoreSCU>();
@@ -232,16 +233,26 @@ var rewriteOptions = new RewriteOptions()
 
 var app = builder.Build();
 
+// 启动时初始化数据库结构（建表 + 字段迁移）
+var connectionString = builder.Configuration.GetConnectionString("DicomDb")
+    ?? throw new ArgumentException("Missing DicomDb connection string");
+var isFirstInitialization = await DatabaseInitializer.InitializeAsync(connectionString);
+if (isFirstInitialization)
+{
+    DicomLogger.Information("Database", "[DB] 数据库表首次初始化完成");
+}
+
 // 初始化服务提供者
 DicomServiceProvider.Initialize(app.Services);
 
 // 获取服务
 var dicomRepository = app.Services.GetRequiredService<DicomRepository>();
+var dicomPersistence = app.Services.GetRequiredService<DicomDatasetPersistence>();
 
 // 配置 DICOM
 DicomSetupBuilder.UseServiceProvider(app.Services);
 
-CStoreSCP.Configure(settings, dicomRepository);
+CStoreSCP.Configure(settings, dicomPersistence);
 
 // 启动 DICOM 服务器
 var dicomServer = app.Services.GetRequiredService<DicomServer>();
