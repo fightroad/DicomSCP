@@ -5,14 +5,9 @@ namespace DicomSCP.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class LogsController : ControllerBase
+public class LogsController(IConfiguration configuration) : ControllerBase
 {
-    private readonly IConfiguration _configuration;
-
-    public LogsController(IConfiguration configuration)
-    {
-        _configuration = configuration;
-    }
+    private readonly IConfiguration _configuration = configuration;
 
     [HttpGet("types")]
     public IActionResult GetLogTypes()

@@ -13,25 +13,17 @@ namespace DicomSCP.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class PrintController : Controller
+public class PrintController(
+    DicomRepository repository,
+    ILogger<PrintController> logger,
+    IWebHostEnvironment environment,
+    IConfiguration configuration) : Controller
 {
-    private readonly DicomRepository _repository;
-    private readonly ILogger<PrintController> _logger;
-    private readonly IWebHostEnvironment _environment;
-    private readonly DicomSettings _settings;
-
-    public PrintController(
-        DicomRepository repository, 
-        ILogger<PrintController> logger,
-        IWebHostEnvironment environment,
-        IConfiguration configuration)
-    {
-        _repository = repository;
-        _logger = logger;
-        _environment = environment;
-        _settings = configuration.GetSection("DicomSettings").Get<DicomSettings>() 
+    private readonly DicomRepository _repository = repository;
+    private readonly ILogger<PrintController> _logger = logger;
+    private readonly IWebHostEnvironment _environment = environment;
+    private readonly DicomSettings _settings = configuration.GetSection("DicomSettings").Get<DicomSettings>()
             ?? throw new InvalidOperationException("DicomSettings configuration is missing");
-    }
 
     [HttpGet]
     public async Task<IActionResult> GetPrintJobs(
@@ -44,14 +36,14 @@ public class PrintController : Controller
     {
         try
         {
-            var result = await _repository.GetPrintJobsAsync(callingAE, studyUID, status, date, page, pageSize);
+            var (Items, Total, Page, PageSize, TotalPages) = await _repository.GetPrintJobsAsync(callingAE, studyUID, status, date, page, pageSize);
             return Ok(new
             {
-                items = result.Items,
-                total = result.Total,
-                page = result.Page,
-                pageSize = result.PageSize,
-                totalPages = result.TotalPages
+                items = Items,
+                total = Total,
+                page = Page,
+                pageSize = PageSize,
+                totalPages = TotalPages
             });
         }
         catch (Exception ex)

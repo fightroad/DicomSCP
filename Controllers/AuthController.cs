@@ -30,7 +30,7 @@ public class AuthController : ControllerBase
 
         var claims = new List<Claim>
         {
-            new Claim(ClaimTypes.Name, request.Username)
+            new(ClaimTypes.Name, request.Username)
         };
 
         await HttpContext.SignInAsync(

@@ -9,14 +9,9 @@ namespace DicomSCP.Controllers;
 
 [Route("viewer")]
 [AllowAnonymous]
-public class ViewerController : ControllerBase
+public class ViewerController(DicomRepository repository) : ControllerBase
 {
-    private readonly DicomRepository _repository;
-
-    public ViewerController(DicomRepository repository)
-    {
-        _repository = repository;
-    }
+    private readonly DicomRepository _repository = repository;
 
     [HttpGet("ohif/{studyInstanceUid}")]
     public async Task<IActionResult> GetStudyMetadata(string studyInstanceUid)
