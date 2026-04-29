@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using DicomSCP.Data;
+using DicomSCP.Repository;
 using System.Text.Json;
 using DicomSCP.Services;
 using DicomSCP.Models;
@@ -10,19 +10,14 @@ namespace DicomSCP.Controllers
     [ApiController]
     [Route("dicomweb")]
     [AllowAnonymous]
-    public class QidoRsController : ControllerBase
+    public class QidoRsController(DicomRepository repository) : ControllerBase
     {
-        private readonly DicomRepository _repository;
+        private readonly DicomRepository _repository = repository;
         private static readonly JsonSerializerOptions _jsonOptions = new()
         {
             PropertyNamingPolicy = null,
             WriteIndented = true
         };
-
-        public QidoRsController(DicomRepository repository)
-        {
-            _repository = repository;
-        }
 
         // QIDO-RS: 查询研究
         [HttpGet("studies")]

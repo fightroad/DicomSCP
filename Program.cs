@@ -4,13 +4,14 @@ using Serilog;
 using Serilog.Events;
 using DicomSCP.Configuration;
 using DicomSCP.Services;
-using DicomSCP.Data;
+using DicomSCP.Repository;
 using Microsoft.OpenApi.Models;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication;
 using System.Runtime.InteropServices;
 using Microsoft.AspNetCore.Rewrite;
+using DicomSCP.Middlewares;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -74,10 +75,7 @@ var logSettings = builder.Configuration
 DicomLogger.Initialize(logSettings);
 
 // 初始化数据库日志
-BaseRepository.ConfigureLogging(logSettings);
-
-// 初始化API日志
-ApiLoggingMiddleware.ConfigureLogging(logSettings);
+BaseRepository.ConfigureLogging();
 
 // 配置框架日志
 var logConfig = new LoggerConfiguration()
@@ -242,9 +240,6 @@ if (isFirstInitialization)
 {
     DicomLogger.Information("Database", "[DB] 数据库表首次初始化完成");
 }
-
-// 初始化服务提供者
-DicomServiceProvider.Initialize(app.Services);
 
 // 获取服务
 var dicomRepository = app.Services.GetRequiredService<DicomRepository>();

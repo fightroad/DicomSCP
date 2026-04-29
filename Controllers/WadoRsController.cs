@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using DicomSCP.Data;
+using DicomSCP.Repository;
 using DicomSCP.Configuration;
 using FellowOakDicom;
 using FellowOakDicom.Imaging;
@@ -16,18 +16,12 @@ namespace DicomSCP.Controllers
     [ApiController]
     [Route("dicomweb")]
     [AllowAnonymous]
-    public class WadoRsController : ControllerBase
+    public class WadoRsController(DicomRepository repository, IOptions<DicomSettings> settings) : ControllerBase
     {
-        private readonly DicomRepository _repository;
-        private readonly DicomSettings _settings;
+        private readonly DicomRepository _repository = repository;
+        private readonly DicomSettings _settings = settings.Value;
         private const string AppDicomContentType = "application/dicom";
         private const string JpegImageContentType = "image/jpeg";
-
-        public WadoRsController(DicomRepository repository, IOptions<DicomSettings> settings)
-        {
-            _repository = repository;
-            _settings = settings.Value;
-        }
 
         #region WADO-RS 检索接口
 

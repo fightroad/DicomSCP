@@ -1,4 +1,4 @@
-using DicomSCP.Data;
+using DicomSCP.Repository;
 using DicomSCP.Configuration;
 using DicomSCP.Services;
 using FellowOakDicom;
@@ -16,20 +16,14 @@ namespace DicomSCP.Controllers
 {
     [Route("wado")]
     [AllowAnonymous]
-    public class WadoURIController : ControllerBase
+    public class WadoURIController(
+        DicomRepository dicomRepository,
+        IOptions<DicomSettings> settings) : ControllerBase
     {
-        private readonly DicomRepository _dicomRepository;
-        private readonly DicomSettings _settings;
+        private readonly DicomRepository _dicomRepository = dicomRepository;
+        private readonly DicomSettings _settings = settings.Value;
         private const string AppDicomContentType = "application/dicom";
         private const string JpegImageContentType = "image/jpeg";
-
-        public WadoURIController(
-            DicomRepository dicomRepository,
-            IOptions<DicomSettings> settings)
-        {
-            _dicomRepository = dicomRepository;
-            _settings = settings.Value;
-        }
 
         [HttpGet]
         public async Task<IActionResult> GetStudyInstances(

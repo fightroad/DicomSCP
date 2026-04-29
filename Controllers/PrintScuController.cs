@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using DicomSCP.Services;
 using DicomSCP.Models;
-using DicomSCP.Data;
+using DicomSCP.Repository;
 using DicomSCP.Configuration;
 using System.ComponentModel.DataAnnotations;
 using Microsoft.Extensions.Options;
@@ -10,24 +10,16 @@ namespace DicomSCP.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class PrintScuController : ControllerBase
+public class PrintScuController(
+    IPrintSCU printSCU,
+    DicomRepository repository,
+    ILogger<PrintScuController> logger,
+    IOptions<DicomSettings> settings) : ControllerBase
 {
-    private readonly IPrintSCU _printSCU;
-    private readonly DicomRepository _repository;
-    private readonly ILogger<PrintScuController> _logger;
-    private readonly DicomSettings _settings;
-
-    public PrintScuController(
-        IPrintSCU printSCU, 
-        DicomRepository repository,
-        ILogger<PrintScuController> logger,
-        IOptions<DicomSettings> settings)
-    {
-        _printSCU = printSCU;
-        _repository = repository;
-        _logger = logger;
-        _settings = settings.Value;
-    }
+    private readonly IPrintSCU _printSCU = printSCU;
+    private readonly DicomRepository _repository = repository;
+    private readonly ILogger<PrintScuController> _logger = logger;
+    private readonly DicomSettings _settings = settings.Value;
 
     /// <summary>
     /// 获取打印机列表

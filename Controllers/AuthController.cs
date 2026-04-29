@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
-using DicomSCP.Data;
+using DicomSCP.Repository;
 using DicomSCP.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
@@ -30,7 +30,7 @@ public class AuthController : ControllerBase
 
         var claims = new List<Claim>
         {
-            new Claim(ClaimTypes.Name, request.Username)
+            new(ClaimTypes.Name, request.Username)
         };
 
         await HttpContext.SignInAsync(

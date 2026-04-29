@@ -53,7 +53,18 @@ class ConfigManager {
         if (this.isLoading) return;
 
         try {
+            const confirmed = await showConfirmDialog('确认保存', '确定要保存当前配置吗？保存后需要重启服务生效。');
+            if (!confirmed) {
+                return;
+            }
+
             this.isLoading = true;
+            const saveBtn = document.querySelector('button[onclick="configManager.saveConfig()"]');
+            if (saveBtn) {
+                saveBtn.disabled = true;
+            }
+
+            window.showToast('正在保存配置...', 'info');
             const configText = document.getElementById('configEditor').value;
             let config;
             try {
@@ -68,6 +79,10 @@ class ConfigManager {
         } catch (error) {
             window.showToast(error.response?.data || '保存配置失败', 'error');
         } finally {
+            const saveBtn = document.querySelector('button[onclick="configManager.saveConfig()"]');
+            if (saveBtn) {
+                saveBtn.disabled = false;
+            }
             this.isLoading = false;
         }
     }

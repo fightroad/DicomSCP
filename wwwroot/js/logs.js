@@ -194,20 +194,13 @@ class LogManager {
         }
 
         try {
-            const response = await fetch(`/api/logs/${this.currentType}/${filename}`, {
-                method: 'DELETE'
-            });
-            
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(errorText);
-            }
+            await axios.delete(`/api/logs/${this.currentType}/${encodeURIComponent(filename)}`);
             
             await this.loadLogFiles(this.currentType);
             window.showToast('日志文件已删除', 'success');
         } catch (error) {
             console.error('删除日志失败:', error);
-            window.showToast('删除日志失败: ' + error.message, 'error');
+            window.showToast('删除日志失败: ' + (error.response?.data || error.message), 'error');
         }
     }
 
@@ -287,11 +280,8 @@ class LogManager {
 
     async updateLogFileSelect(currentFile) {
         try {
-            const response = await fetch(`/api/logs/files/${this.currentType}`);
-            if (!response.ok) {
-                throw new Error('获取日志文件列表失败');
-            }
-            const files = await response.json();
+            const response = await axios.get(`/api/logs/files/${this.currentType}`);
+            const files = response.data;
             
             const select = document.getElementById('logFileSelect');
             if (!select) return;
@@ -360,12 +350,8 @@ class LogManager {
             const preElement = document.querySelector('.log-content');
             if (!preElement) return;
 
-            const response = await fetch(`/api/logs/${this.currentType}/${filename}/content`);
-            if (!response.ok) {
-                throw new Error('获取日志内容失败');
-            }
-            
-            const data = await response.json();
+            const response = await axios.get(`/api/logs/${this.currentType}/${encodeURIComponent(filename)}/content`);
+            const data = response.data;
             if (!data.content || data.content.length === 0) {
                 preElement.innerHTML = '暂无日志内容';
                 return;
@@ -379,7 +365,7 @@ class LogManager {
             preElement.scrollTop = 0;
         } catch (error) {
             console.error('加载日志内容失败:', error);
-            window.showToast('加载日志内容失败: ' + error.message, 'error');
+            window.showToast('加载日志内容失败: ' + (error.response?.data || error.message), 'error');
         }
     }
 

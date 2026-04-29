@@ -1,23 +1,18 @@
 using Microsoft.AspNetCore.Mvc;
 using DicomSCP.Models;
-using DicomSCP.Data;
+using DicomSCP.Repository;
 using DicomSCP.Services;
 
 namespace DicomSCP.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class WorklistController : ControllerBase
+public class WorklistController(WorklistRepository repository) : ControllerBase
 {
-    private readonly WorklistRepository _repository;
-
-    public WorklistController(WorklistRepository repository)
-    {
-        _repository = repository;
-    }
+    private readonly WorklistRepository _repository = repository;
 
     // 添加 DICOM 格式转换为 ISO 格式的辅助方法
-    private string ConvertToIsoDateTime(string? dicomDateTime)
+    private static string ConvertToIsoDateTime(string? dicomDateTime)
     {
         if (string.IsNullOrEmpty(dicomDateTime)) return string.Empty;
         
@@ -56,7 +51,7 @@ public class WorklistController : ControllerBase
     }
 
     // 添加 ISO 格式转换为 DICOM 格式的辅助方法
-    private string ConvertToDicomDateTime(string? isoDateTime)
+    private static string ConvertToDicomDateTime(string? isoDateTime)
     {
         if (string.IsNullOrEmpty(isoDateTime)) return string.Empty;
 
@@ -83,7 +78,7 @@ public class WorklistController : ControllerBase
     }
 
     // 添加年龄和生日转换的辅助方法
-    private (string birthDate, int age) CalculateAgeAndBirthDate(int? providedAge = null, string? birthDate = null)
+    private static (string birthDate, int age) CalculateAgeAndBirthDate(int? providedAge = null, string? birthDate = null)
     {
         var today = DateTime.Today;
         

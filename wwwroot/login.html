@@ -165,14 +165,13 @@
 
     <div class="copyright">
 
-            © 2024 DICOM管理系统 by 
+            © <span id="currentYear"></span> DICOM管理系统 by 
             <a href="https://gitee.com/fightroad/DicomSCP" target="_blank">
                 平凡之路 <i class="bi bi-github"></i>
             </a>
 
     </div>
 
-    <script src="lib/jquery/jquery.min.js"></script>
     <script src="lib/bootstrap/js/bootstrap.bundle.min.js"></script>
     <script src="lib/axios/axios.min.js"></script>
     <script>
@@ -201,6 +200,11 @@
                 login();
             }
         });
+
+        const yearElement = document.getElementById('currentYear');
+        if (yearElement) {
+            yearElement.textContent = new Date().getFullYear();
+        }
     </script>
 </body>
-</html> 
+</html>

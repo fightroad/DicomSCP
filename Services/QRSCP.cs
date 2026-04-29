@@ -3,9 +3,8 @@ using FellowOakDicom;
 using FellowOakDicom.Network;
 using FellowOakDicom.Network.Client;
 using FellowOakDicom.Imaging.Codec;
-using Microsoft.Extensions.Options;
 using DicomSCP.Configuration;
-using DicomSCP.Data;
+using DicomSCP.Repository;
 using DicomSCP.Models;
 using System.Collections.Concurrent;  // 添加这个引用
 
@@ -13,6 +12,9 @@ namespace DicomSCP.Services;
 
 public class QRSCP : DicomService, IDicomServiceProvider, IDicomCEchoProvider, IDicomCFindProvider, IDicomCMoveProvider, IDicomCGetProvider, IDicomCStoreProvider
 {
+    private static DicomSettings? _globalSettings;
+    private static DicomRepository? _globalRepository;
+
     private static readonly DicomTransferSyntax[] AcceptedTransferSyntaxes = new[]
     {
         DicomTransferSyntax.ExplicitVRLittleEndian,
@@ -41,6 +43,12 @@ public class QRSCP : DicomService, IDicomServiceProvider, IDicomCEchoProvider, I
     // 用于跟踪每个目标 AE 的发送任务
     private static readonly ConcurrentDictionary<string, CancellationTokenSource> _activeDestinations = new();
 
+    public static void Configure(DicomSettings settings, DicomRepository repository)
+    {
+        _globalSettings = settings ?? throw new ArgumentNullException(nameof(settings));
+        _globalRepository = repository ?? throw new ArgumentNullException(nameof(repository));
+    }
+
     public QRSCP(
         INetworkStream stream, 
         Encoding fallbackEncoding, 
@@ -50,8 +58,8 @@ public class QRSCP : DicomService, IDicomServiceProvider, IDicomCEchoProvider, I
     {
         try
         {
-            _settings = DicomServiceProvider.GetRequiredService<IOptions<DicomSettings>>().Value;
-            _repository = DicomServiceProvider.GetRequiredService<DicomRepository>();
+            _settings = _globalSettings ?? throw new InvalidOperationException("QRSCP is not configured");
+            _repository = _globalRepository ?? throw new InvalidOperationException("QRSCP is not configured");
             DicomLogger.Information("QRSCP", "QR服务初始化完成");
         }
         catch (Exception ex)

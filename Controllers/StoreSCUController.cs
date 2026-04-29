@@ -2,27 +2,20 @@ using Microsoft.AspNetCore.Mvc;
 using DicomSCP.Services;
 using DicomSCP.Configuration;
 using Microsoft.Extensions.Options;
-using DicomSCP.Data;
+using DicomSCP.Repository;
 
 namespace DicomSCP.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class StoreSCUController : ControllerBase
+public class StoreSCUController(
+    IStoreSCU storeSCU,
+    IOptions<QueryRetrieveConfig> config,
+    IOptions<DicomSettings> settings) : ControllerBase
 {
-    private readonly IStoreSCU _storeSCU;
-    private readonly QueryRetrieveConfig _config;
-    private readonly string _tempPath;
-
-    public StoreSCUController(
-        IStoreSCU storeSCU,
-        IOptions<QueryRetrieveConfig> config,
-        IOptions<DicomSettings> settings)
-    {
-        _storeSCU = storeSCU;
-        _config = config.Value;
-        _tempPath = settings.Value.TempPath;
-    }
+    private readonly IStoreSCU _storeSCU = storeSCU;
+    private readonly QueryRetrieveConfig _config = config.Value;
+    private readonly string _tempPath = settings.Value.TempPath;
 
     [HttpGet("nodes")]
     public ActionResult<IEnumerable<RemoteNode>> GetNodes()

@@ -5,16 +5,10 @@ namespace DicomSCP.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class ConfigController : ControllerBase
+public class ConfigController(IWebHostEnvironment env, ILogger<ConfigController> logger) : ControllerBase
 {
-    private readonly string _configPath;
-    private readonly ILogger<ConfigController> _logger;
-
-    public ConfigController(IWebHostEnvironment env, ILogger<ConfigController> logger)
-    {
-        _configPath = Path.Combine(env.ContentRootPath, "appsettings.json");
-        _logger = logger;
-    }
+    private readonly string _configPath = Path.Combine(env.ContentRootPath, "appsettings.json");
+    private readonly ILogger<ConfigController> _logger = logger;
 
     [HttpGet]
     public IActionResult GetConfig()
