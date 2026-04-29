@@ -240,26 +240,29 @@ function updateQRPagination(total) {
 
 // 切换序列信息显示
 async function toggleQRSeriesInfo(row) {
-    const studyUid = $(row).data('study-uid');
-    const seriesRow = $(row).next('.series-info');
-    
-    if (seriesRow.is(':visible')) {
-        seriesRow.hide();
+    const studyUid = row?.dataset?.studyUid;
+    if (!studyUid) return;
+
+    const nextRow = row.nextElementSibling;
+    if (nextRow && nextRow.classList.contains('series-info')) {
+        nextRow.remove();
         return;
     }
 
     try {
+        row.parentElement?.querySelectorAll('.series-info').forEach(el => el.remove());
+
         // 显示加载动画
-        const loadingRow = $(`
-            <tr class="series-info">
-                <td colspan="9" class="text-center py-3">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">加载中...</span>
-                    </div>
-                </td>
-            </tr>
-        `);
-        $(row).after(loadingRow);
+        const loadingRow = document.createElement('tr');
+        loadingRow.className = 'series-info';
+        loadingRow.innerHTML = `
+            <td colspan="9" class="text-center py-3">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">加载中...</span>
+                </div>
+            </td>
+        `;
+        row.insertAdjacentElement('afterend', loadingRow);
 
         const nodeId = document.getElementById('qrNode').value;
         // 使用 series 级别查询
@@ -273,30 +276,30 @@ async function toggleQRSeriesInfo(row) {
         }
 
         // 创建序列信息行
-        const seriesInfoRow = $(`
-            <tr class="series-info">
-                <td colspan="9">
-                    <div class="series-container">
-                        <table class="table table-sm table-bordered series-detail-table">
-                            <thead>
-                                <tr>
-                                    <th style="width: 50px">序列号</th>
-                                    <th style="width: 100px">检查类型</th>
-                                    <th style="width: 500px">序列描述</th>
-                                    <th style="width: 80px">图像数量</th>
-                                    <th style="width: 80px">操作</th>
-                                </tr>
-                            </thead>
-                            <tbody></tbody>
-                        </table>
-                    </div>
-                </td>
-            </tr>
-        `);
+        const seriesInfoRow = document.createElement('tr');
+        seriesInfoRow.className = 'series-info';
+        seriesInfoRow.innerHTML = `
+            <td colspan="9">
+                <div class="series-container">
+                    <table class="table table-sm table-bordered series-detail-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 50px">序列号</th>
+                                <th style="width: 100px">检查类型</th>
+                                <th style="width: 500px">序列描述</th>
+                                <th style="width: 80px">图像数量</th>
+                                <th style="width: 80px">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </td>
+        `;
 
-        const tbody = seriesInfoRow.find('tbody');
+        const tbody = seriesInfoRow.querySelector('tbody');
         if (!result.data || result.data.length === 0) {
-            tbody.append(`
+            tbody.insertAdjacentHTML('beforeend', `
                 <tr>
                     <td colspan="5" class="text-center text-muted py-3">
                         <i class="bi bi-inbox fs-2 mb-2 d-block"></i>
@@ -306,7 +309,7 @@ async function toggleQRSeriesInfo(row) {
             `);
         } else {
             result.data.forEach(series => {
-                tbody.append(`
+                tbody.insertAdjacentHTML('beforeend', `
                     <tr>
                         <td>${series.seriesNumber || ''}</td>
                         <td>${series.modality || '未知'}</td>
@@ -322,16 +325,13 @@ async function toggleQRSeriesInfo(row) {
             });
         }
 
-        // 移除加载动画和已存在的序列信息行
-        $(row).siblings('.series-info').remove();
-        // 添加新的序列信息行
-        $(row).after(seriesInfoRow);
+        loadingRow.remove();
+        row.insertAdjacentElement('afterend', seriesInfoRow);
 
     } catch (error) {
         console.error('获取序列数据失败:', error);
         window.showToast(error.message || '获取失败', 'error');
-        // 移除加载动画
-        $(row).siblings('.series-info').remove();
+        row.parentElement?.querySelectorAll('.series-info').forEach(el => el.remove());
     }
 }
 
