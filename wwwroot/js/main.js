@@ -365,18 +365,28 @@ function showConfirmDialog(title, message) {
 const ModalManager = {
     init() {
         try {
-            // 监听所有模态框的隐藏事件
-            $(document).on('hidden.bs.modal', '.modal', function() {
-                // 移除所有焦点
-                $(this).find('button, [role="button"], a, input, select, textarea').blur();
-                
+            // 监听所有模态框隐藏（原生事件委托）
+            document.addEventListener('hidden.bs.modal', (event) => {
+                const modalEl = event.target;
+                if (!(modalEl instanceof HTMLElement) || !modalEl.classList.contains('modal')) {
+                    return;
+                }
+
+                // 移除焦点
+                modalEl.querySelectorAll('button, [role="button"], a, input, select, textarea')
+                    .forEach(el => {
+                        if (el instanceof HTMLElement) {
+                            el.blur();
+                        }
+                    });
+
                 // 如果是动态创建的模态框，清理它
-                if ($(this).data('dynamic')) {
-                    const modal = bootstrap.Modal.getInstance(this);
+                if (modalEl.dataset.dynamic) {
+                    const modal = bootstrap.Modal.getInstance(modalEl);
                     if (modal) {
                         modal.dispose();
                     }
-                    $(this).remove();
+                    modalEl.remove();
                 }
             });
         } catch (error) {
@@ -387,8 +397,8 @@ const ModalManager = {
     // 关闭所有模态框
     closeAll() {
         try {
-            $('.modal.show').each(function() {
-                const modal = bootstrap.Modal.getInstance(this);
+            document.querySelectorAll('.modal.show').forEach((modalEl) => {
+                const modal = bootstrap.Modal.getInstance(modalEl);
                 if (modal) {
                     modal.hide();
                 }

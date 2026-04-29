@@ -31,7 +31,11 @@ class AuthManager {
     // 修改密码
     changePassword() {
         try {
-            const modal = $('#changePasswordModal');
+            const modalElement = document.getElementById('changePasswordModal');
+            if (!modalElement) {
+                throw new Error('找不到修改密码弹窗元素');
+            }
+            const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
             const form = document.getElementById('changePasswordForm');
             
             // 清空表单并重置验证状态
@@ -39,7 +43,7 @@ class AuthManager {
             form.classList.remove('was-validated');
             
             // 显示模态框
-            modal.modal('show');
+            modal.show();
             
         } catch (error) {
             console.error('显示修改密码对话框失败:', error);
@@ -104,7 +108,11 @@ class AuthManager {
                 newPassword: newPassword
             });
             
-            $('#changePasswordModal').modal('hide');
+            const modalElement = document.getElementById('changePasswordModal');
+            if (modalElement) {
+                const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
+                modal.hide();
+            }
             window.showToast('密码修改成功，请重新登录', 'success');
             setTimeout(() => {
                 window.location.href = '/login.html';
