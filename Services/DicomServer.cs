@@ -7,32 +7,25 @@ using DicomSCP.Data;
 
 namespace DicomSCP.Services;
 
-public sealed class DicomServer : IDisposable
+public sealed class DicomServer(
+    IConfiguration configuration,
+    ILoggerFactory loggerFactory,
+    IOptions<DicomSettings> settings,
+    DicomRepository repository,
+    DicomDatasetPersistence persistence) : IDisposable
 {
-    private readonly DicomSettings _settings;
-    private readonly IConfiguration _configuration;
-    private readonly ILoggerFactory _loggerFactory;
-    private readonly DicomRepository _repository;
+    private readonly DicomSettings _settings = settings?.Value ?? throw new ArgumentNullException(nameof(settings));
+    private readonly IConfiguration _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
+    private readonly ILoggerFactory _loggerFactory = loggerFactory ?? throw new ArgumentNullException(nameof(loggerFactory));
+    private readonly DicomRepository _repository = repository ?? throw new ArgumentNullException(nameof(repository));
+    private readonly DicomDatasetPersistence _persistence = persistence ?? throw new ArgumentNullException(nameof(persistence));
     
     private IDicomServer? _storeScp;
     private IDicomServer? _worklistScp;
     private IDicomServer? _qrScp;
     private IDicomServer? _printScp;
     private bool _disposed;
-    private readonly Dictionary<string, IDicomServer> _servers;
-
-    public DicomServer(
-        IConfiguration configuration,
-        ILoggerFactory loggerFactory,
-        IOptions<DicomSettings> settings,
-        DicomRepository repository)
-    {
-        _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
-        _loggerFactory = loggerFactory ?? throw new ArgumentNullException(nameof(loggerFactory));
-        _settings = settings?.Value ?? throw new ArgumentNullException(nameof(settings));
-        _repository = repository ?? throw new ArgumentNullException(nameof(repository));
-        _servers = new Dictionary<string, IDicomServer>();
-    }
+    private readonly Dictionary<string, IDicomServer> _servers = new Dictionary<string, IDicomServer>();
 
     public bool IsRunning => _storeScp != null || _worklistScp != null || _qrScp != null || _printScp != null;
 
@@ -89,12 +82,11 @@ public sealed class DicomServer : IDisposable
         {
             Console.WriteLine("═══════════════════════════════════════════════════════════");
             // 配置存储服务
-            CStoreSCP.Configure(_settings, _repository);
+            CStoreSCP.Configure(_settings, _persistence);
 
             // 配置工作列表服务
             WorklistSCP.Configure(
                 _settings,
-                _configuration,
                 _repository);
 
             try

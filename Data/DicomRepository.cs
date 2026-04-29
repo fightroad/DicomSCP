@@ -1,647 +1,17 @@
 using Dapper;
 using DicomSCP.Models;
-using FellowOakDicom;
-using System.Collections.Concurrent;
-using System.Diagnostics;
 using Microsoft.Data.Sqlite;
 using System.Security.Cryptography;
 using System.Text;
-using System.Data;
 using Microsoft.Extensions.Options;
 using DicomSCP.Configuration;
 
 namespace DicomSCP.Data;
 
-public class DicomRepository : BaseRepository, IDisposable
+public class DicomRepository(IConfiguration configuration, ILogger<DicomRepository> logger, IOptions<DicomSettings> settings)
+    : BaseRepository(configuration.GetConnectionString("DicomDb") ?? throw new ArgumentException("Missing DicomDb connection string"), logger)
 {
-    private readonly ConcurrentQueue<(DicomDataset Dataset, string FilePath)> _dataQueue = new();
-    private readonly SemaphoreSlim _processSemaphore = new(1, 1);
-    private readonly Timer _processTimer;
-    private readonly int _batchSize;
-    private readonly TimeSpan _maxWaitTime = TimeSpan.FromSeconds(10);
-    private readonly TimeSpan _minWaitTime = TimeSpan.FromSeconds(2);
-    private readonly Stopwatch _performanceTimer = new();
-    private DateTime _lastProcessTime = DateTime.Now;
-    private bool _initialized;
-    private bool _disposed;
-    private readonly DicomSettings _settings;
-
-    private static class SqlQueries
-    {
-        public const string InsertPatient = @"
-            INSERT OR IGNORE INTO Patients 
-            (PatientId, PatientName, PatientBirthDate, PatientSex, CreateTime)
-            VALUES (@PatientId, @PatientName, @PatientBirthDate, @PatientSex, @CreateTime)";
-
-        public const string InsertStudy = @"
-            INSERT OR IGNORE INTO Studies 
-            (StudyInstanceUid, PatientId, StudyDate, StudyTime, StudyDescription, 
-             AccessionNumber, Modality, InstitutionName, CreateTime)
-            VALUES (@StudyInstanceUid, @PatientId, @StudyDate, @StudyTime, @StudyDescription, 
-                    @AccessionNumber, @Modality, @InstitutionName, @CreateTime)";
-
-        public const string InsertSeries = @"
-            INSERT OR IGNORE INTO Series 
-            (
-                SeriesInstanceUid, 
-                StudyInstanceUid, 
-                Modality, 
-                SeriesNumber, 
-                SeriesDescription,
-                SliceThickness,
-                SeriesDate,        
-                CreateTime
-            )
-            VALUES 
-            (
-                @SeriesInstanceUid, 
-                @StudyInstanceUid, 
-                @Modality, 
-                @SeriesNumber, 
-                @SeriesDescription,
-                @SliceThickness,
-                @SeriesDate,
-                @CreateTime
-            )";
-
-        public const string InsertInstance = @"
-            INSERT OR IGNORE INTO Instances (
-                SopInstanceUid, SeriesInstanceUid, SopClassUid, InstanceNumber, FilePath,
-                Columns, Rows, PhotometricInterpretation, BitsAllocated, BitsStored,
-                PixelRepresentation, SamplesPerPixel, PixelSpacing, HighBit,
-                ImageOrientationPatient, ImagePositionPatient, FrameOfReferenceUID,
-                ImageType, WindowCenter, WindowWidth, CreateTime
-            ) VALUES (
-                @SopInstanceUid, @SeriesInstanceUid, @SopClassUid, @InstanceNumber, @FilePath,
-                @Columns, @Rows, @PhotometricInterpretation, @BitsAllocated, @BitsStored,
-                @PixelRepresentation, @SamplesPerPixel, @PixelSpacing, @HighBit,
-                @ImageOrientationPatient, @ImagePositionPatient, @FrameOfReferenceUID,
-                @ImageType, @WindowCenter, @WindowWidth, @CreateTime
-            )";
-
-        public const string CreateWorklistTable = @"
-            CREATE TABLE IF NOT EXISTS Worklist (
-                WorklistId TEXT PRIMARY KEY,
-                AccessionNumber TEXT,
-                PatientId TEXT,
-                PatientName TEXT,
-                PatientBirthDate TEXT,
-                PatientSex TEXT,
-                StudyInstanceUid TEXT,
-                StudyDescription TEXT,
-                Modality TEXT,
-                ScheduledAET TEXT,
-                ScheduledDateTime TEXT,
-                ScheduledStationName TEXT,
-                ScheduledProcedureStepID TEXT,
-                ScheduledProcedureStepDescription TEXT,
-                RequestedProcedureID TEXT,
-                RequestedProcedureDescription TEXT,
-                ReferringPhysicianName TEXT,
-                Status TEXT DEFAULT 'SCHEDULED',
-                BodyPartExamined TEXT,
-                ReasonForRequest TEXT,
-                CreateTime DATETIME DEFAULT CURRENT_TIMESTAMP,
-                UpdateTime DATETIME DEFAULT CURRENT_TIMESTAMP
-            )";
-
-        public const string QueryWorklist = @"
-            SELECT * FROM Worklist 
-            WHERE (@PatientId IS NULL OR PatientId LIKE @PatientId)
-            AND (@AccessionNumber IS NULL OR AccessionNumber LIKE @AccessionNumber)
-            AND (@ScheduledDateTime IS NULL OR ScheduledDateTime LIKE @ScheduledDateTime)
-            AND (@Modality IS NULL OR Modality = @Modality)
-            AND (@ScheduledStationName IS NULL OR ScheduledStationName = @ScheduledStationName)
-            AND Status = 'SCHEDULED'";
-
-        public const string CreatePatientsTable = @"
-            CREATE TABLE IF NOT EXISTS Patients (
-                PatientId TEXT PRIMARY KEY,
-                PatientName TEXT,
-                PatientBirthDate TEXT,
-                PatientSex TEXT,
-                CreateTime DATETIME
-            )";
-
-        public const string CreateStudiesTable = @"
-            CREATE TABLE IF NOT EXISTS Studies (
-                StudyInstanceUid TEXT PRIMARY KEY,
-                PatientId TEXT,
-                StudyDate TEXT,
-                StudyTime TEXT,
-                StudyDescription TEXT,
-                AccessionNumber TEXT,
-                Modality TEXT,
-                InstitutionName TEXT,
-                CreateTime DATETIME,
-                FOREIGN KEY(PatientId) REFERENCES Patients(PatientId)
-            )";
-
-        public const string CreateSeriesTable = @"
-            CREATE TABLE IF NOT EXISTS Series (
-                SeriesInstanceUid TEXT PRIMARY KEY,
-                StudyInstanceUid TEXT,
-                Modality TEXT,
-                SeriesNumber TEXT,
-                SeriesDescription TEXT,
-                SliceThickness TEXT,
-                SeriesDate TEXT,
-                CreateTime DATETIME,
-                FOREIGN KEY(StudyInstanceUid) REFERENCES Studies(StudyInstanceUid)
-            )";
-
-        public const string CreateInstancesTable = @"
-            CREATE TABLE IF NOT EXISTS Instances (
-                SopInstanceUid TEXT PRIMARY KEY,
-                SeriesInstanceUid TEXT,
-                SopClassUid TEXT,
-                InstanceNumber TEXT,
-                FilePath TEXT,
-                Columns INTEGER,
-                Rows INTEGER,
-                PhotometricInterpretation TEXT,
-                BitsAllocated INTEGER,
-                BitsStored INTEGER,
-                PixelRepresentation INTEGER,
-                SamplesPerPixel INTEGER,
-                PixelSpacing TEXT,
-                HighBit INTEGER,
-                ImageOrientationPatient TEXT,
-                ImagePositionPatient TEXT,
-                FrameOfReferenceUID TEXT,
-                ImageType TEXT,
-                WindowCenter TEXT,
-                WindowWidth TEXT,
-                CreateTime DATETIME,
-                FOREIGN KEY(SeriesInstanceUid) REFERENCES Series(SeriesInstanceUid)
-            )";
-
-        public const string CreateUsersTable = @"
-            CREATE TABLE IF NOT EXISTS Users (
-                Username TEXT PRIMARY KEY,
-                Password TEXT NOT NULL
-            )";
-
-        public const string InitializeAdminUser = @"
-            INSERT OR IGNORE INTO Users (Username, Password) 
-            VALUES ('admin', 'jGl25bVBBBW96Qi9Te4V37Fnqchz/Eu4qB9vKrRIqRg=')";
-
-        public const string CreatePrintJobsTable = @"
-            CREATE TABLE IF NOT EXISTS PrintJobs (
-                JobId TEXT PRIMARY KEY,
-                FilmSessionId TEXT,
-                FilmBoxId TEXT,
-                CallingAE TEXT,
-                Status TEXT,
-                ErrorMessage TEXT,
-
-                -- Film Session 参数
-                NumberOfCopies INTEGER DEFAULT 1,
-                PrintPriority TEXT DEFAULT 'LOW',
-                MediumType TEXT DEFAULT 'BLUE FILM',
-                FilmDestination TEXT DEFAULT 'MAGAZINE',
-
-                -- Film Box 参数
-                PrintInColor INTEGER DEFAULT 0,
-                FilmOrientation TEXT DEFAULT 'PORTRAIT',
-                FilmSizeID TEXT DEFAULT '8INX10IN',
-                ImageDisplayFormat TEXT DEFAULT 'STANDARD\1,1',
-                MagnificationType TEXT DEFAULT 'REPLICATE',
-                SmoothingType TEXT DEFAULT 'MEDIUM',
-                BorderDensity TEXT DEFAULT 'BLACK',
-                EmptyImageDensity TEXT DEFAULT 'BLACK',
-                Trim TEXT DEFAULT 'NO',
-
-                -- 图像信息
-                ImagePath TEXT,
-
-                -- 研究信息
-                StudyInstanceUID TEXT,
-
-                -- 时间戳
-                CreateTime DATETIME DEFAULT CURRENT_TIMESTAMP,
-                UpdateTime DATETIME DEFAULT CURRENT_TIMESTAMP
-            )";
-    }
-
-    public DicomRepository(IConfiguration configuration, ILogger<DicomRepository> logger, IOptions<DicomSettings> settings)
-        : base(configuration.GetConnectionString("DicomDb") ?? throw new ArgumentException("Missing DicomDb connection string"), logger)
-    {
-        _settings = settings.Value;
-        _batchSize = configuration.GetValue<int>("DicomSettings:BatchSize", 50);
-
-        // 初始化数据库
-        Task.Run(async () =>
-        {
-            try
-            {
-                await InitializeDatabase();
-            }
-            catch (Exception ex)
-            {
-                LogError(ex, "初始化数据库失败");
-            }
-        }).GetAwaiter().GetResult();
-
-        _processTimer = new Timer(async _ => await ProcessQueueAsync(), null, _minWaitTime, _minWaitTime);
-    }
-
-    private async Task ProcessQueueAsync()
-    {
-        if (_dataQueue.IsEmpty) return;
-
-        var queueSize = _dataQueue.Count;
-        var waitTime = DateTime.Now - _lastProcessTime;
-
-        // 修改处理时机判断
-        if (queueSize >= _batchSize || // 队列达到批处理大小
-            (queueSize > 0 && waitTime >= _maxWaitTime) || // 等待超过10秒就处理
-            (queueSize >= 5 && waitTime >= _minWaitTime))  // 只要有5条且等待超过2秒就处理
-        {
-            await ProcessBatchWithRetryAsync();
-        }
-    }
-
-    private async Task ProcessBatchWithRetryAsync()
-    {
-        if (!await _processSemaphore.WaitAsync(TimeSpan.FromSeconds(1)))
-        {
-            return;
-        }
-
-        List<(DicomDataset Dataset, string FilePath)> batchItems = new();
-
-        try
-        {
-            _performanceTimer.Restart();
-            var batchSize = Math.Min(_dataQueue.Count, _batchSize);
-            
-            // 一次性收集批处理数据
-            while (batchItems.Count < batchSize && _dataQueue.TryDequeue(out var item))
-            {
-                batchItems.Add(item);
-            }
-
-            if (batchItems.Count == 0) return;
-
-            await using var connection = new SqliteConnection(_connectionString);
-            await connection.OpenAsync();
-            await using var transaction = await connection.BeginTransactionAsync();
-
-            try
-            {
-                var now = DateTime.Now;
-                var patients = new List<Patient>();
-                var studies = new List<Study>();
-                var series = new List<Series>();
-                var instances = new List<Instance>();
-
-                // 预分配容量以提高性能
-                patients.Capacity = batchItems.Count;
-                studies.Capacity = batchItems.Count;
-                series.Capacity = batchItems.Count;
-                instances.Capacity = batchItems.Count;
-
-                foreach (var (dataset, filePath) in batchItems)
-                {
-                    try
-                    {
-                        ExtractDicomData(dataset, filePath, now, patients, studies, series, instances);
-                    }
-                    catch (Exception ex)
-                    {
-                        // 记录单条数据处理错误，但继续处理其他数据
-                        LogError(ex, "处理DICOM数据失败 - 文件: {FilePath}", filePath);
-                        continue;
-                    }
-                }
-
-                if (patients.Count == 0 && studies.Count == 0 && series.Count == 0 && instances.Count == 0)
-                {
-                    LogWarning("批处理中没有有效数据");
-                    return;
-                }
-
-                // 批量插入数据，使用 INSERT OR IGNORE
-                var insertedPatients = await connection.ExecuteAsync(SqlQueries.InsertPatient, patients, transaction);
-                var insertedStudies = await connection.ExecuteAsync(SqlQueries.InsertStudy, studies, transaction);
-                var insertedSeries = await connection.ExecuteAsync(SqlQueries.InsertSeries, series, transaction);
-                var insertedInstances = await connection.ExecuteAsync(SqlQueries.InsertInstance, instances, transaction);
-
-                await transaction.CommitAsync();
-
-                _performanceTimer.Stop();
-                _lastProcessTime = DateTime.Now;
-
-                LogInformation(
-                    "批量处理完成 - 总数: {Count}, 新增: P={Patients}, S={Studies}, Se={Series}, I={Instances}, 耗时: {Time}ms, 队列剩余: {Remaining}", 
-                    batchItems.Count,
-                    insertedPatients,
-                    insertedStudies,
-                    insertedSeries,
-                    insertedInstances,
-                    _performanceTimer.ElapsedMilliseconds,
-                    _dataQueue.Count);
-            }
-            catch (Exception ex)
-            {
-                await transaction.RollbackAsync();
-                LogError(ex, "数据库操作失败 - 批次大小: {Count}", batchItems.Count);
-                
-                // 记录失败的数据，但不重新入队
-                foreach (var (dataset, filePath) in batchItems)
-                {
-                    try
-                    {
-                        var sopInstanceUid = dataset.GetSingleValueOrDefault<string>(DicomTag.SOPInstanceUID, "Unknown");
-                        var studyInstanceUid = dataset.GetSingleValueOrDefault<string>(DicomTag.StudyInstanceUID, "Unknown");
-                        var seriesInstanceUid = dataset.GetSingleValueOrDefault<string>(DicomTag.SeriesInstanceUID, "Unknown");
-                        
-                        LogInformation("数据入库失败 - 文件: {FilePath}, Study: {Study}, Series: {Series}, Instance: {Instance}", 
-                            filePath, studyInstanceUid, seriesInstanceUid, sopInstanceUid);
-                    }
-                    catch
-                    {
-                        LogInformation("数据入库失败且无法获取标识信息 - 文件: {FilePath}", filePath);
-                    }
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            LogError(ex, "处理批次时发生异常");
-        }
-        finally
-        {
-            _processSemaphore.Release();
-        }
-    }
-
-    private async Task InitializeDatabase()
-    {
-        if (_initialized) return;
-
-        // 确保数据库目录存在
-        var dbPath = Path.GetDirectoryName(_connectionString.Replace("Data Source=", "").Trim());
-        if (!string.IsNullOrEmpty(dbPath))
-        {
-            Directory.CreateDirectory(dbPath);
-        }
-
-        using var connection = new SqliteConnection(_connectionString);
-        await connection.OpenAsync();
-        using var transaction = await connection.BeginTransactionAsync();
-
-        // 检查是否已存在表
-        var tableExists = await connection.ExecuteScalarAsync<int>(
-            "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='Studies'");
-
-        try
-        {
-            // 创建所有表
-            await connection.ExecuteAsync(SqlQueries.CreatePatientsTable, transaction: transaction);
-            await connection.ExecuteAsync(SqlQueries.CreateStudiesTable, transaction: transaction);
-            await connection.ExecuteAsync(SqlQueries.CreateSeriesTable, transaction: transaction);
-            await connection.ExecuteAsync(SqlQueries.CreateInstancesTable, transaction: transaction);
-            await connection.ExecuteAsync(SqlQueries.CreateWorklistTable, transaction: transaction);
-            await connection.ExecuteAsync(SqlQueries.CreateUsersTable, transaction: transaction);
-            await connection.ExecuteAsync(SqlQueries.InitializeAdminUser, transaction: transaction);
-            
-            // 创建打印任务表
-            await connection.ExecuteAsync(SqlQueries.CreatePrintJobsTable, transaction: transaction);
-
-            await transaction.CommitAsync();
-            _initialized = true;
-            if (tableExists == 0)
-            {
-                LogInformation("数据库表首次初始化完成");
-            }
-        }
-        catch (Exception ex)
-        {
-            await transaction.RollbackAsync();
-            LogError(ex, "初始化数据库表失败");
-            throw;
-        }
-    }
-
-    private void ExtractDicomData(
-        DicomDataset dataset, 
-        string filePath, 
-        DateTime now,
-        List<Patient> patients,
-        List<Study> studies,
-        List<Series> series,
-        List<Instance> instances)
-    {
-        var patientId = dataset.GetSingleValue<string>(DicomTag.PatientID);
-        var studyInstanceUid = dataset.GetSingleValue<string>(DicomTag.StudyInstanceUID);
-        var seriesInstanceUid = dataset.GetSingleValue<string>(DicomTag.SeriesInstanceUID);
-
-        patients.Add(new Patient
-        {
-            PatientId = patientId,
-            PatientName = dataset.GetSingleValueOrDefault<string>(DicomTag.PatientName, string.Empty),
-            PatientBirthDate = dataset.GetSingleValueOrDefault<string>(DicomTag.PatientBirthDate, string.Empty),
-            PatientSex = dataset.GetSingleValueOrDefault<string>(DicomTag.PatientSex, string.Empty),
-            CreateTime = now
-        });
-
-        studies.Add(new Study
-        {
-            StudyInstanceUid = studyInstanceUid,
-            PatientId = patientId,
-            StudyDate = dataset.GetSingleValueOrDefault<string>(DicomTag.StudyDate, string.Empty),
-            StudyTime = dataset.GetSingleValueOrDefault<string>(DicomTag.StudyTime, string.Empty),
-            StudyDescription = dataset.GetSingleValueOrDefault<string>(DicomTag.StudyDescription, string.Empty),
-            AccessionNumber = dataset.GetSingleValueOrDefault<string>(DicomTag.AccessionNumber, string.Empty),
-            Modality = GetStudyModality(dataset),
-            InstitutionName = dataset.GetSingleValueOrDefault<string>(DicomTag.InstitutionName, string.Empty),
-            CreateTime = now
-        });
-
-        series.Add(new Series
-        {
-            SeriesInstanceUid = seriesInstanceUid,
-            StudyInstanceUid = studyInstanceUid,
-            Modality = dataset.GetSingleValueOrDefault<string>(DicomTag.Modality, string.Empty),
-            SeriesNumber = dataset.GetSingleValueOrDefault<string>(DicomTag.SeriesNumber, string.Empty),
-            SeriesDescription = dataset.GetSingleValueOrDefault<string>(DicomTag.SeriesDescription, string.Empty),
-            SliceThickness = dataset.GetSingleValueOrDefault<string>(DicomTag.SliceThickness, string.Empty),
-            SeriesDate = dataset.GetSingleValueOrDefault<string>(DicomTag.SeriesDate, string.Empty),
-            CreateTime = now
-        });
-
-        instances.Add(new Instance
-        {
-            SopInstanceUid = dataset.GetSingleValue<string>(DicomTag.SOPInstanceUID),
-            SeriesInstanceUid = seriesInstanceUid,
-            SopClassUid = dataset.GetSingleValue<string>(DicomTag.SOPClassUID),
-            InstanceNumber = dataset.GetSingleValueOrDefault<string>(DicomTag.InstanceNumber, string.Empty),
-            FilePath = filePath,
-            Columns = dataset.GetSingleValueOrDefault<int>(DicomTag.Columns, 0),
-            Rows = dataset.GetSingleValueOrDefault<int>(DicomTag.Rows, 0),
-            PhotometricInterpretation = dataset.GetSingleValueOrDefault<string>(DicomTag.PhotometricInterpretation, string.Empty),
-            BitsAllocated = dataset.GetSingleValueOrDefault<int>(DicomTag.BitsAllocated, 0),
-            BitsStored = dataset.GetSingleValueOrDefault<int>(DicomTag.BitsStored, 0),
-            PixelRepresentation = dataset.GetSingleValueOrDefault<int>(DicomTag.PixelRepresentation, 0),
-            SamplesPerPixel = dataset.GetSingleValueOrDefault<int>(DicomTag.SamplesPerPixel, 0),
-            
-            // 处理可能是单值或多值的标签
-            PixelSpacing = dataset.Contains(DicomTag.PixelSpacing)
-                ? (dataset.GetValueCount(DicomTag.PixelSpacing) > 1
-                    ? string.Join("\\", dataset.GetValues<decimal>(DicomTag.PixelSpacing))
-                    : dataset.GetSingleValueOrDefault<decimal>(DicomTag.PixelSpacing, 0).ToString())
-                : string.Empty,
-            
-            HighBit = dataset.GetSingleValueOrDefault<int>(DicomTag.HighBit, 0),
-            
-            ImageOrientationPatient = dataset.Contains(DicomTag.ImageOrientationPatient)
-                ? (dataset.GetValueCount(DicomTag.ImageOrientationPatient) > 1
-                    ? string.Join("\\", dataset.GetValues<decimal>(DicomTag.ImageOrientationPatient))
-                    : dataset.GetSingleValueOrDefault<decimal>(DicomTag.ImageOrientationPatient, 0).ToString())
-                : string.Empty,
-            
-            ImagePositionPatient = dataset.Contains(DicomTag.ImagePositionPatient)
-                ? (dataset.GetValueCount(DicomTag.ImagePositionPatient) > 1
-                    ? string.Join("\\", dataset.GetValues<decimal>(DicomTag.ImagePositionPatient))
-                    : dataset.GetSingleValueOrDefault<decimal>(DicomTag.ImagePositionPatient, 0).ToString())
-                : string.Empty,
-            
-            FrameOfReferenceUID = dataset.GetSingleValueOrDefault<string>(DicomTag.FrameOfReferenceUID, string.Empty),
-            
-            ImageType = dataset.Contains(DicomTag.ImageType)
-                ? (dataset.GetValueCount(DicomTag.ImageType) > 1
-                    ? string.Join("\\", dataset.GetValues<string>(DicomTag.ImageType))
-                    : dataset.GetSingleValueOrDefault<string>(DicomTag.ImageType, string.Empty))
-                : string.Empty,
-            
-            WindowCenter = dataset.Contains(DicomTag.WindowCenter)
-                ? (dataset.GetValueCount(DicomTag.WindowCenter) > 1
-                    ? string.Join("\\", dataset.GetValues<string>(DicomTag.WindowCenter))
-                    : dataset.GetSingleValueOrDefault<string>(DicomTag.WindowCenter, string.Empty))
-                : string.Empty,
-            
-            WindowWidth = dataset.Contains(DicomTag.WindowWidth)
-                ? (dataset.GetValueCount(DicomTag.WindowWidth) > 1
-                    ? string.Join("\\", dataset.GetValues<string>(DicomTag.WindowWidth))
-                    : dataset.GetSingleValueOrDefault<string>(DicomTag.WindowWidth, string.Empty))
-                : string.Empty,
-            
-            CreateTime = now
-        });
-    }
-
-    private string GetStudyModality(DicomDataset dataset)
-    {
-        // 首先尝试从ModalitiesInStudy获取
-        try
-        {
-            if (dataset.Contains(DicomTag.ModalitiesInStudy))
-            {
-                var modalities = dataset.GetValues<string>(DicomTag.ModalitiesInStudy);
-                if (modalities != null && modalities.Length > 0)
-                {
-                    return string.Join("\\", modalities.Where(m => !string.IsNullOrEmpty(m)));
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            LogWarning("获取ModalitiesInStudy失败: {Error}", ex.Message);
-        }
-
-        // 如果没有ModalitiesInStudy，则使用Series级别的Modality
-        var modality = dataset.GetSingleValueOrDefault<string>(DicomTag.Modality, string.Empty);
-        if (!string.IsNullOrEmpty(modality))
-        {
-            return modality;
-        }
-
-        return string.Empty;
-    }
-
-    private void HandleFailedBatch(List<(DicomDataset Dataset, string FilePath)> failedItems)
-    {
-        // 可以实现失败理逻辑，比如：
-        // 1. 写入错误日志文件
-        // 2. 存入特定的误表
-        // 3. 送告警通知
-        // 4. 放入重试队列等
-    }
-
-    public async Task SaveDicomDataAsync(DicomDataset dataset, string filePath)
-    {
-        _dataQueue.Enqueue((dataset, filePath));
-        
-        // 当队列达到批处理的80%时，主动触发处理
-        if (_dataQueue.Count >= _batchSize * 0.8)
-        {
-            await ProcessQueueAsync();
-        }
-    }
-
-    public void Dispose()
-    {
-        if (!_disposed)
-        {
-            _disposed = true;
-
-            try
-            {
-                // 1. 先停止定时器，防止新的处理被触发
-                _processTimer?.Change(Timeout.Infinite, Timeout.Infinite);
-                _processTimer?.Dispose();
-
-                // 2. 等待当前处理完成并处理剩余数据
-                while (!_dataQueue.IsEmpty)
-                {
-                    try
-                    {
-                        // 同步处理剩余数据
-                        if (_processSemaphore.Wait(TimeSpan.FromSeconds(30)))  // 给足够的等待时间
-                        {
-                            try
-                            {
-                                ProcessBatchWithRetryAsync().GetAwaiter().GetResult();
-                            }
-                            finally
-                            {
-                                _processSemaphore.Release();
-                            }
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        LogError(ex, "处理剩余数据失败");
-                        break;  // 如果处理失败，退出循环
-                    }
-                }
-
-                // 3. 最后释放信号量
-                _processSemaphore?.Dispose();
-            }
-            catch (Exception ex)
-            {
-                LogError(ex, "Dispose过程发生错误");
-            }
-        }
-    }
-
-    public async Task<IEnumerable<dynamic>> GetAllStudiesWithPatientInfoAsync()
-    {
-        using var connection = new SqliteConnection(_connectionString);
-        var sql = @"
-            SELECT s.StudyInstanceUid, s.PatientId, s.StudyDate, s.StudyTime, 
-                   s.StudyDescription, s.AccessionNumber, s.CreateTime,
-                   p.PatientName, p.PatientSex, p.PatientBirthDate,
-                   (SELECT Modality FROM Series WHERE StudyInstanceUid = s.StudyInstanceUid LIMIT 1) as Modality
-            FROM Studies s
-            LEFT JOIN Patients p ON s.PatientId = p.PatientId
-            ORDER BY s.CreateTime DESC";
-
-        return await connection.QueryAsync(sql);
-    }
+    private readonly DicomSettings _settings = settings.Value;
 
     public async Task<IEnumerable<Series>> GetSeriesByStudyUidAsync(string studyUid)
     {
@@ -853,6 +223,7 @@ public class DicomRepository : BaseRepository, IDisposable
                 s.Modality,
                 s.StudyDate,
                 s.StudyDescription,
+                s.Remark,
                 COUNT(DISTINCT i.SopInstanceUid) as NumberOfInstances
             FROM Studies s
             LEFT JOIN Patients p ON s.PatientId = p.PatientId
@@ -909,7 +280,8 @@ public class DicomRepository : BaseRepository, IDisposable
                 s.AccessionNumber,
                 s.Modality,
                 s.StudyDate,
-                s.StudyDescription");
+                s.StudyDescription,
+                s.Remark");
 
         // 获取总记录数（修改子查询以包含 GROUP BY）
         var countSql = $@"
@@ -1034,23 +406,6 @@ public class DicomRepository : BaseRepository, IDisposable
             LogError(ex, "实例查询失败 - StudyInstanceUid: {StudyInstanceUid}", studyInstanceUid);
             return new List<Instance>();
         }
-    }
-
-    public void UpdateWorklistStatus(string scheduledStepId, string status)
-    {
-        using var connection = new SqliteConnection(_connectionString);
-        connection.Open();
-
-        var command = connection.CreateCommand();
-        command.CommandText = @"
-            UPDATE Worklist 
-            SET Status = @Status 
-            WHERE ScheduledProcedureStepID = @StepID";
-
-        command.Parameters.AddWithValue("@Status", status);
-        command.Parameters.AddWithValue("@StepID", scheduledStepId);
-
-        command.ExecuteNonQuery();
     }
 
     #region PrintSCP Operations
@@ -1235,39 +590,6 @@ public class DicomRepository : BaseRepository, IDisposable
     /// <summary>
     /// 获取指定状态的打印任务列表
     /// </summary>
-    public async Task<IEnumerable<PrintJob>> GetPrintJobsByStatusAsync(string status)
-    {
-        try
-        {
-            using var connection = CreateConnection();
-            var sql = "SELECT * FROM PrintJobs WHERE Status = @Status ORDER BY CreateTime DESC";
-            return await connection.QueryAsync<PrintJob>(sql, new { Status = status });
-        }
-        catch (Exception ex)
-        {
-            LogError(ex, "获取打印任务列表失败 - Status: {Status}", status);
-            throw;
-        }
-    }
-
-    /// <summary>
-    /// 获取最近的打印任务
-    /// </summary>
-    public async Task<PrintJob?> GetMostRecentPrintJobAsync()
-    {
-        try
-        {
-            using var connection = CreateConnection();
-            var sql = "SELECT * FROM PrintJobs WHERE FilmBoxId IS NOT NULL ORDER BY CreateTime DESC LIMIT 1";
-            return await connection.QueryFirstOrDefaultAsync<PrintJob>(sql);
-        }
-        catch (Exception ex)
-        {
-            LogError(ex, "获取最近打印任务失败");
-            throw;
-        }
-    }
-
     #endregion
 
     #region Print Management API
@@ -1448,32 +770,6 @@ public class DicomRepository : BaseRepository, IDisposable
         }
     }
 
-    public async Task UpdateStudyModalityAsync(string studyInstanceUid, string modality)
-    {
-        try
-        {
-            using var connection = CreateConnection();
-            var sql = @"
-                UPDATE Studies 
-                SET Modality = @Modality 
-                WHERE StudyInstanceUid = @StudyInstanceUid 
-                AND (Modality IS NULL OR Modality = '')";
-
-            await connection.ExecuteAsync(sql, new { 
-                StudyInstanceUid = studyInstanceUid, 
-                Modality = modality 
-            });
-
-            LogDebug("更新Study Modality - StudyInstanceUID: {StudyInstanceUid}, Modality: {Modality}", 
-                studyInstanceUid, modality);
-        }
-        catch (Exception ex)
-        {
-            LogError(ex, "更新Study Modality失败 - StudyInstanceUID: {StudyInstanceUid}, Modality: {Modality}", 
-                studyInstanceUid, modality);
-        }
-    }
-
     // 保原有法，供 QRSCP 使用
     public List<Study> GetStudies(
         string patientId, 
@@ -1550,7 +846,7 @@ public class DicomRepository : BaseRepository, IDisposable
                 StartDate = dateRange.StartDate,
                 EndDate = dateRange.EndDate,
                 ModCount = modalities?.Length ?? 0,
-                Modalities = (modalities?.Length ?? 0) > 0 ? modalities : new[] { "" },
+                Modalities = (modalities?.Length ?? 0) > 0 ? modalities : [""],
                 StudyInstanceUid = studyInstanceUid ?? "",
                 Offset = offset,
                 Limit = limit
@@ -1562,7 +858,7 @@ public class DicomRepository : BaseRepository, IDisposable
             var totalCount = connection.ExecuteScalar<int>(countSql, parameters);
 
             var studies = connection.Query<Study>(sql, parameters);
-            var result = studies?.ToList() ?? new List<Study>();
+            var result = studies?.ToList() ?? [];
             
             LogInformation("检查查询完成 - 返回记录数: {Count}/{Total}, 日期范围: {StartDate} - {EndDate}, StudyInstanceUID: {StudyUID}", 
                 result.Count, totalCount, dateRange.StartDate ?? "", dateRange.EndDate ?? "", studyInstanceUid ?? "");
@@ -1572,7 +868,7 @@ public class DicomRepository : BaseRepository, IDisposable
         catch (Exception ex)
         {
             LogError(ex, "检查查询失败");
-            return new List<Study>();
+            return [];
         }
     }
 
@@ -1591,7 +887,7 @@ public class DicomRepository : BaseRepository, IDisposable
 
     public List<Configuration.PrinterConfig> GetPrinters()
     {
-        return _settings.PrintSCU?.Printers ?? new List<Configuration.PrinterConfig>();
+        return _settings.PrintSCU?.Printers ?? [];
     }
 
     public async Task<IEnumerable<Series>> GetSeriesAsync(string studyInstanceUid)

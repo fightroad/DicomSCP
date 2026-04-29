@@ -12,42 +12,6 @@ public class WorklistRepository : BaseRepository
         Microsoft.Extensions.Logging.ILogger<WorklistRepository> logger)
         : base(configuration.GetConnectionString("DicomDb") ?? throw new ArgumentException("Missing DicomDb connection string"), logger)
     {
-        InitializeDatabase();
-    }
-
-    private void InitializeDatabase()
-    {
-        using var connection = new SqliteConnection(_connectionString);
-        connection.Open();
-
-        // 创建 Worklist 表
-        var sql = @"
-            CREATE TABLE IF NOT EXISTS Worklist (
-                WorklistId TEXT PRIMARY KEY,
-                AccessionNumber TEXT NOT NULL,
-                PatientId TEXT NOT NULL,
-                PatientName TEXT NOT NULL,
-                PatientBirthDate TEXT,
-                PatientSex TEXT,
-                StudyInstanceUid TEXT NOT NULL,
-                StudyDescription TEXT,
-                Modality TEXT NOT NULL,
-                ScheduledAET TEXT NOT NULL,
-                ScheduledDateTime TEXT NOT NULL,
-                ScheduledStationName TEXT,
-                ScheduledProcedureStepID TEXT,
-                ScheduledProcedureStepDescription TEXT,
-                RequestedProcedureID TEXT,
-                RequestedProcedureDescription TEXT,
-                ReferringPhysicianName TEXT,
-                Status TEXT NOT NULL DEFAULT 'SCHEDULED',
-                CreateTime TEXT NOT NULL,
-                UpdateTime TEXT NOT NULL,
-                BodyPartExamined TEXT,
-                ReasonForRequest TEXT
-            )";
-
-        connection.Execute(sql);
     }
 
     public async Task<IEnumerable<WorklistItem>> GetAllAsync()

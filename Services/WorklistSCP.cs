@@ -25,7 +25,6 @@ public class WorklistSCP : DicomService, IDicomServiceProvider, IDicomCFindProvi
 
     public static void Configure(
         DicomSettings settings,
-        IConfiguration configuration,
         DicomRepository repository)
     {
         _settings = settings ?? throw new ArgumentNullException(nameof(settings));
@@ -35,7 +34,7 @@ public class WorklistSCP : DicomService, IDicomServiceProvider, IDicomCFindProvi
     public WorklistSCP(
         INetworkStream stream, 
         Encoding fallbackEncoding, 
-        Microsoft.Extensions.Logging.ILogger log, 
+        ILogger log, 
         DicomServiceDependencies dependencies,
         IOptions<DicomSettings> settings)
         : base(stream, fallbackEncoding, log, dependencies)
@@ -143,8 +142,8 @@ public class WorklistSCP : DicomService, IDicomServiceProvider, IDicomCFindProvi
             yield break;
         }
 
-        DicomLogger.Debug("WorklistSCP", "收到工作列表查询请求 - 原始数据集: {@Dataset}", 
-            request.Dataset.ToDictionary(x => x.Tag.ToString(), x => x.ToString()));
+        DicomLogger.Debug("WorklistSCP", "收到工作列表查询请求 - 数据集结构:\n{DatasetStructure}",
+            FormatDatasetStructure(request.Dataset));
 
         var responses = await Task.Run(() => ProcessWorklistQuery(request));
         foreach (var response in responses)
@@ -153,7 +152,7 @@ public class WorklistSCP : DicomService, IDicomServiceProvider, IDicomCFindProvi
         }
     }
 
-    private IEnumerable<DicomCFindResponse> ProcessWorklistQuery(DicomCFindRequest request)
+    private List<DicomCFindResponse> ProcessWorklistQuery(DicomCFindRequest request)
     {
         List<WorklistItem> worklistItems;
         try
@@ -173,13 +172,13 @@ public class WorklistSCP : DicomService, IDicomServiceProvider, IDicomCFindProvi
         catch (Exception ex)
         {
             DicomLogger.Error("WorklistSCP", ex, "工作列表查询失败: {Message}", ex.Message);
-            return new[] { new DicomCFindResponse(request, DicomStatus.ProcessingFailure) };
+            return [new DicomCFindResponse(request, DicomStatus.ProcessingFailure)];
         }
 
         if (worklistItems.Count == 0)
         {
             DicomLogger.Debug("WorklistSCP", "未找到匹配的工作列表项");
-            return new[] { new DicomCFindResponse(request, DicomStatus.Success) };
+            return [new DicomCFindResponse(request, DicomStatus.Success)];
         }
 
         var responses = new List<DicomCFindResponse>();
@@ -202,40 +201,13 @@ public class WorklistSCP : DicomService, IDicomServiceProvider, IDicomCFindProvi
         if (responses.Count == 0 && hasErrors)
         {
             DicomLogger.Error("WorklistSCP", null, "所有响应创建都失败");
-            return new[] { new DicomCFindResponse(request, DicomStatus.ProcessingFailure) };
+            return [new DicomCFindResponse(request, DicomStatus.ProcessingFailure)];
         }
 
         DicomLogger.Information("WorklistSCP", "工作列表查询完成 - 返回记录数: {Count}, 是否有错误: {HasErrors}", 
             responses.Count, hasErrors);
         responses.Add(new DicomCFindResponse(request, DicomStatus.Success));
         return responses;
-    }
-
-    private List<WorklistItem> QueryWorklistItems(
-        (string PatientId, string AccessionNumber, string ScheduledDateTime, string Modality, string ScheduledStationName) filters)
-    {
-        if (_repository == null)
-        {
-            DicomLogger.Error("WorklistSCP", null, "数据仓储未配置");
-            throw new InvalidOperationException("Repository not configured");
-        }
-
-        try
-        {
-            DicomLogger.Debug("WorklistSCP", "执行工作列表查询");
-            return _repository.GetWorklistItems(
-                filters.PatientId,
-                string.Empty,
-                filters.AccessionNumber,
-                (filters.ScheduledDateTime, filters.ScheduledDateTime),
-                filters.Modality,
-                filters.ScheduledStationName);
-        }
-        catch (Exception ex)
-        {
-            DicomLogger.Error("WorklistSCP", ex, "查询工作列表失败 - 查询条件: {@Filters}", filters);
-            throw;
-        }
     }
 
     private DicomCFindResponse CreateWorklistResponse(DicomCFindRequest request, WorklistItem item)
@@ -363,41 +335,34 @@ public class WorklistSCP : DicomService, IDicomServiceProvider, IDicomCFindProvi
             dataset.Add(DicomTag.StudyInstanceUID, ProcessDicomValue(item.StudyInstanceUid, DicomTag.StudyInstanceUID, needConvertName));
             dataset.Add(DicomTag.AccessionNumber, ProcessDicomValue(item.AccessionNumber, DicomTag.AccessionNumber, needConvertName));
             // 医生姓名也需要根据字符集处理
-            var physicianName = needConvertName ? 
+            var physicianName = needConvertName ?
                 ConvertToDeviceName(item.ReferringPhysicianName) : 
                 item.ReferringPhysicianName;
             dataset.Add(DicomTag.ReferringPhysicianName, ProcessDicomValue(physicianName, DicomTag.ReferringPhysicianName, needConvertName));
 
-            // 预约信息
-            dataset.Add(DicomTag.Modality, ProcessDicomValue(item.Modality, DicomTag.Modality, needConvertName));
-            dataset.Add(DicomTag.ScheduledStationAETitle, ProcessDicomValue(item.ScheduledAET, DicomTag.ScheduledStationAETitle, needConvertName));
-
-            // 处理预约日期时间
+            // 预约信息（MWL标准结构：Scheduled Procedure Step Sequence）
+            string spsStartDate;
+            string spsStartTime;
             try
             {
                 if (!string.IsNullOrEmpty(item.ScheduledDateTime))
                 {
                     DateTime scheduledDateTime;
                     string dateStr = item.ScheduledDateTime.Trim();
-                    
-                    // 移除所有非数字字符
-                    string numericOnly = new string(dateStr.Where(char.IsDigit).ToArray());
-                    
-                    // 根据数字长度判断格式
+                    string numericOnly = new(dateStr.Where(char.IsDigit).ToArray());
+
                     if (numericOnly.Length >= 8)
                     {
                         string formattedDate;
                         if (numericOnly.Length >= 12)
                         {
-                            // 包含时间的情况
-                            formattedDate = numericOnly.Substring(0, 8) + 
-                                          (numericOnly.Length >= 12 ? numericOnly.Substring(8, 4) : "0000") +
-                                          (numericOnly.Length >= 14 ? numericOnly.Substring(12, 2) : "00");
+                            formattedDate = numericOnly.Substring(0, 8) +
+                                            (numericOnly.Length >= 12 ? numericOnly.Substring(8, 4) : "0000") +
+                                            (numericOnly.Length >= 14 ? numericOnly.Substring(12, 2) : "00");
                         }
                         else
                         {
-                            // 只有日期的情况
-                            formattedDate = numericOnly.Substring(0, 8) + "000000";
+                            formattedDate = string.Concat(numericOnly.AsSpan(0, 8), "000000");
                         }
 
                         if (DateTime.TryParseExact(formattedDate,
@@ -406,17 +371,11 @@ public class WorklistSCP : DicomService, IDicomServiceProvider, IDicomCFindProvi
                             DateTimeStyles.None,
                             out scheduledDateTime))
                         {
-                            dataset.Add(DicomTag.ScheduledProcedureStepStartDate,
-                                scheduledDateTime.ToString("yyyyMMdd"));
-                            dataset.Add(DicomTag.ScheduledProcedureStepStartTime,
-                                scheduledDateTime.ToString("HHmmss"));
-
+                            spsStartDate = scheduledDateTime.ToString("yyyyMMdd");
+                            spsStartTime = scheduledDateTime.ToString("HHmmss");
                             DicomLogger.Debug("WorklistSCP",
                                 "预约时间处理成功 - 原始值: {Original}, 格式化值: {Formatted}, 转换后日期: {Date}, 时间: {Time}",
-                                item.ScheduledDateTime,
-                                formattedDate,
-                                scheduledDateTime.ToString("yyyyMMdd"),
-                                scheduledDateTime.ToString("HHmmss"));
+                                item.ScheduledDateTime, formattedDate, spsStartDate, spsStartTime);
                         }
                         else
                         {
@@ -430,30 +389,37 @@ public class WorklistSCP : DicomService, IDicomServiceProvider, IDicomCFindProvi
                 }
                 else
                 {
-                    // 没有预约时间时使用当前时间
                     var now = DateTime.Now;
-                    dataset.Add(DicomTag.ScheduledProcedureStepStartDate, now.ToString("yyyyMMdd"));
-                    dataset.Add(DicomTag.ScheduledProcedureStepStartTime, now.ToString("HHmmss"));
-                    DicomLogger.Debug("WorklistSCP", "使用当前时间作为预约时间: {DateTime}", 
-                        now.ToString("yyyyMMddHHmmss"));
+                    spsStartDate = now.ToString("yyyyMMdd");
+                    spsStartTime = now.ToString("HHmmss");
                 }
             }
             catch (Exception ex)
             {
                 DicomLogger.Warning("WorklistSCP",
                     "处理预约时间失败 - PatientId: {PatientId}, DateTime: {DateTime}, Error: {Error}",
-                    item.PatientId ?? "",
-                    item.ScheduledDateTime ?? "",
-                    ex.Message);
-                // 发生异常时使用当前时间
+                    item.PatientId ?? "", item.ScheduledDateTime ?? "", ex.Message);
                 var now = DateTime.Now;
-                dataset.Add(DicomTag.ScheduledProcedureStepStartDate, now.ToString("yyyyMMdd"));
-                dataset.Add(DicomTag.ScheduledProcedureStepStartTime, now.ToString("HHmmss"));
+                spsStartDate = now.ToString("yyyyMMdd");
+                spsStartTime = now.ToString("HHmmss");
             }
 
-            dataset.Add(DicomTag.ScheduledStationName, ProcessDicomValue(item.ScheduledStationName, DicomTag.ScheduledStationName, needConvertName));
-            dataset.Add(DicomTag.ScheduledProcedureStepID, ProcessDicomValue(item.ScheduledProcedureStepID, DicomTag.ScheduledProcedureStepID, needConvertName));
-            dataset.Add(DicomTag.RequestedProcedureID, ProcessDicomValue(item.RequestedProcedureID, DicomTag.RequestedProcedureID, needConvertName));
+            var scheduledStep = new DicomDataset
+            {
+                { DicomTag.ScheduledStationAETitle, ProcessDicomValue(item.ScheduledAET, DicomTag.ScheduledStationAETitle, needConvertName) },
+                { DicomTag.ScheduledProcedureStepStartDate, spsStartDate },
+                { DicomTag.ScheduledProcedureStepStartTime, spsStartTime },
+                { DicomTag.Modality, ProcessDicomValue(item.Modality, DicomTag.Modality, needConvertName) },
+                { DicomTag.ScheduledPerformingPhysicianName, ProcessDicomValue(physicianName, DicomTag.ScheduledPerformingPhysicianName, needConvertName) },
+                { DicomTag.ScheduledProcedureStepDescription, ProcessDicomValue(item.ScheduledProcedureStepDescription, DicomTag.ScheduledProcedureStepDescription, needConvertName) },
+                { DicomTag.ScheduledProcedureStepID, ProcessDicomValue(item.AccessionNumber, DicomTag.ScheduledProcedureStepID, needConvertName) },
+                { DicomTag.ScheduledStationName, ProcessDicomValue(item.ScheduledStationName, DicomTag.ScheduledStationName, needConvertName) },
+                { DicomTag.ScheduledProcedureStepLocation, ProcessDicomValue(string.Empty, DicomTag.ScheduledProcedureStepLocation, needConvertName) }
+            };
+
+            dataset.Add(new DicomSequence(DicomTag.ScheduledProcedureStepSequence, scheduledStep));
+            dataset.Add(DicomTag.RequestedProcedureID, ProcessDicomValue(item.AccessionNumber, DicomTag.RequestedProcedureID, needConvertName));
+            dataset.Add(DicomTag.RequestedProcedureDescription, ProcessDicomValue(item.BodyPartExamined, DicomTag.RequestedProcedureDescription, needConvertName));
 
             var response = new DicomCFindResponse(request, DicomStatus.Pending) { Dataset = dataset };
             DicomLogger.Debug("WorklistSCP", 
@@ -472,16 +438,14 @@ public class WorklistSCP : DicomService, IDicomServiceProvider, IDicomCFindProvi
     private WorklistQueryParameters ExtractQueryParameters(DicomCFindRequest request)
     {
         // 记录原始请求参数
-        DicomLogger.Debug("WorklistSCP", "接收到查询请求: {@Tags}", 
-            request.Dataset.Where(x => !x.Tag.IsPrivate)
-                         .ToDictionary(x => x.Tag.ToString(), x => x.ToString()));
+        DicomLogger.Debug("WorklistSCP", "接收到查询请求(过滤私有标签) - 数据集结构:\n{DatasetStructure}",
+            FormatDatasetStructure(request.Dataset, ignorePrivateTags: true));
 
         var modality = GetModality(request.Dataset);
         var dateRange = GetDateRange(request.Dataset);
         
         // 获取患者姓名
         var patientName = request.Dataset.GetSingleValueOrDefault<string>(DicomTag.PatientName, string.Empty);
-        DicomLogger.Debug("WorklistSCP", "查询患者姓名: {PatientName}", patientName);
         
         var parameters = new WorklistQueryParameters(
             request.Dataset.GetSingleValueOrDefault<string>(DicomTag.PatientID, string.Empty),
@@ -517,7 +481,6 @@ public class WorklistSCP : DicomService, IDicomServiceProvider, IDicomCFindProvi
                 modality = stepSequence.Items[0].GetSingleValueOrDefault<string>(DicomTag.Modality, string.Empty);
                 if (!string.IsNullOrEmpty(modality))
                 {
-                    DicomLogger.Debug("WorklistSCP", "从 ScheduledProcedureStep 获取到 Modality: {Modality}", modality);
                     return modality;
                 }
             }
@@ -529,7 +492,7 @@ public class WorklistSCP : DicomService, IDicomServiceProvider, IDicomCFindProvi
         return modality;
     }
 
-    private (string StartDate, string EndDate) GetDateRange(DicomDataset dataset)
+    private static (string StartDate, string EndDate) GetDateRange(DicomDataset dataset)
     {
         var today = DateTime.Now.ToString("yyyyMMdd");
         string startDate, endDate;
@@ -545,7 +508,7 @@ public class WorklistSCP : DicomService, IDicomServiceProvider, IDicomCFindProvi
                     .Where(v => !string.IsNullOrEmpty(v) && v.Length == 8)
                     .ToList();
 
-                if (validDates.Any())
+                if (validDates.Count != 0)
                 {
                     startDate = validDates.Min() ?? today;
                     endDate = today;
@@ -579,8 +542,6 @@ public class WorklistSCP : DicomService, IDicomServiceProvider, IDicomCFindProvi
         }
 
         var dateRange = (StartDate: startDate, EndDate: endDate);
-        DicomLogger.Information("WorklistSCP", "最终查询日期范围: {StartDate} - {EndDate}", 
-            dateRange.StartDate, dateRange.EndDate);
         return dateRange;
     }
 
@@ -590,7 +551,7 @@ public class WorklistSCP : DicomService, IDicomServiceProvider, IDicomCFindProvi
         return Task.FromResult(new DicomCEchoResponse(request, DicomStatus.Success));
     }
 
-    private string ConvertToDeviceName(string chineseName)
+    private static string ConvertToDeviceName(string chineseName)
     {
         try
         {
@@ -616,7 +577,7 @@ public class WorklistSCP : DicomService, IDicomServiceProvider, IDicomCFindProvi
                     {
                         result.Append(pinyin.ToLower());
                     }
-                    result.Append('^'); // DICOM中姓名分隔符
+                    result.Append(' ');
                 }
                 else
                 {
@@ -626,12 +587,12 @@ public class WorklistSCP : DicomService, IDicomServiceProvider, IDicomCFindProvi
             }
 
             // 移除最后一个分隔符（如果存在）
-            if (result.Length > 0 && result[result.Length - 1] == '^')
+            if (result.Length > 0 && result[result.Length - 1] == ' ')
             {
                 result.Length--;
             }
 
-            return result.ToString();
+            return result.ToString().Trim();
         }
         catch (Exception ex)
         {
@@ -653,9 +614,7 @@ public class WorklistSCP : DicomService, IDicomServiceProvider, IDicomCFindProvi
         {
             // CS 类型的字符限制：只允许大写字母、数字、空格和下划线
             processedValue = new string(
-                processedValue.ToUpperInvariant()
-                    .Where(c => char.IsUpper(c) || char.IsDigit(c) || c == ' ' || c == '_')
-                    .ToArray()
+                [.. processedValue.ToUpperInvariant().Where(c => char.IsUpper(c) || char.IsDigit(c) || c == ' ' || c == '_')]
             ).Trim();
         }
 
@@ -668,7 +627,41 @@ public class WorklistSCP : DicomService, IDicomServiceProvider, IDicomCFindProvi
         return processedValue;
     }
 
-    private bool ContainsChineseCharacters(string text)
+    private static string FormatDatasetStructure(DicomDataset dataset, bool ignorePrivateTags = false)
+    {
+        var sb = new StringBuilder();
+        AppendDatasetStructure(sb, dataset, 0, ignorePrivateTags);
+        return sb.ToString();
+    }
+
+    private static void AppendDatasetStructure(StringBuilder sb, DicomDataset dataset, int indentLevel, bool ignorePrivateTags)
+    {
+        var indent = new string(' ', indentLevel * 2);
+
+        foreach (var item in dataset)
+        {
+            if (ignorePrivateTags && item.Tag.IsPrivate)
+            {
+                continue;
+            }
+
+            if (item is DicomSequence sequence)
+            {
+                sb.AppendLine($"{indent}- {sequence.Tag} {sequence.Tag.DictionaryEntry.Name}: Sequence ({sequence.Items.Count} item(s))");
+                for (var i = 0; i < sequence.Items.Count; i++)
+                {
+                    sb.AppendLine($"{indent}  [Item {i + 1}]");
+                    AppendDatasetStructure(sb, sequence.Items[i], indentLevel + 2, ignorePrivateTags);
+                }
+            }
+            else
+            {
+                sb.AppendLine($"{indent}- {item.Tag} {item.Tag.DictionaryEntry.Name}: {item}");
+            }
+        }
+    }
+
+    private static bool ContainsChineseCharacters(string text)
     {
         return text.Any(c => PinyinHelper.IsChinese(c));
     }

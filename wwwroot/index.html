@@ -290,7 +290,18 @@
                     </div>
                 </div>
                 <div class="table-responsive">
-                    <table id="images-table" class="table table-hover">
+                    <table id="images-table" class="table table-hover table-fixed">
+                        <colgroup>
+                            <col style="width: 120px;" />  <!-- 患者ID -->
+                            <col style="width: 120px;" />  <!-- 姓名 -->
+                            <col style="width: 120px;" />  <!-- 检查号 -->
+                            <col style="width: 90px;" />   <!-- 检查类型 -->
+                            <col style="width: 110px;" />  <!-- 检查时间 -->
+                            <col style="width: 160px;" />  <!-- 检查描述 -->
+                            <col style="width: 80px;" />   <!-- 图像数 -->
+                            <col style="width: 180px;" />  <!-- 备注 -->
+                            <col style="width: 250px;" />  <!-- 操作 -->
+                        </colgroup>
                         <thead>
                             <tr>
                                 <th>患者ID</th>
@@ -300,13 +311,28 @@
                                 <th>检查时间</th>
                                 <th>检查描述</th>
                                 <th>图像数</th>
-                                <th>操作</th>
+                                <th>备注</th>
+                                <th class="images-actions">操作</th>
                             </tr>
                         </thead>
                         <tbody id="images-table-body">
                         </tbody>
                     </table>
                 </div>
+
+                <style>
+                    /* 固定列宽，避免长文本挤压其它列 */
+                    #images-table.table-fixed {
+                        table-layout: fixed;
+                        width: 100%;
+                    }
+                    #images-table.table-fixed td,
+                    #images-table.table-fixed th {
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                        white-space: nowrap;
+                    }
+                </style>
 
                 <!-- 添加影像分页组件 -->
                 <div class="d-flex justify-content-between align-items-center mt-3">
