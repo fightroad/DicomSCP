@@ -95,7 +95,7 @@ async function processEntry(entry, counts = { added: 0, skipped: 0 }) {
         if (entry.isFile) {
             const file = await getFileFromEntry(entry);
             if (file.name.toLowerCase().endsWith('.dcm')) {
-                addFileToSelection(file);
+                addFileToSelection(file, true);
                 counts.added++;
             } else {
                 counts.skipped++;
@@ -209,7 +209,7 @@ function handleFileSelect(e) {
     
     files.forEach(file => {
         if (file.name.toLowerCase().endsWith('.dcm')) {
-            addFileToSelection(file);
+            addFileToSelection(file, true);
             addedCount++;
         } else {
             skippedCount++;
@@ -228,7 +228,7 @@ function handleFileSelect(e) {
 }
 
 // 添加文件到选择列表
-function addFileToSelection(file) {
+function addFileToSelection(file, skipUiUpdate = false) {
     const fileId = generateFileId(file);
     if (!selectedFiles.has(fileId)) {
         selectedFiles.set(fileId, {
@@ -237,7 +237,9 @@ function addFileToSelection(file) {
             message: ''
         });
     }
-    updateUI();
+    if (!skipUiUpdate) {
+        updateUI();
+    }
 }
 
 // 生成文件ID
