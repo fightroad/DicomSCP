@@ -77,9 +77,6 @@ DicomLogger.Initialize(logSettings);
 // 初始化数据库日志
 BaseRepository.ConfigureLogging();
 
-// 初始化API日志
-ApiLoggingMiddleware.ConfigureLogging(logSettings);
-
 // 配置框架日志
 var logConfig = new LoggerConfiguration()
     .MinimumLevel.Warning()  // 只记录警告以上的日志

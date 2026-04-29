@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using DicomSCP.Configuration;
 using Serilog.Events;
 using DicomSCP.Services;
 
@@ -9,11 +8,6 @@ public class ApiLoggingMiddleware(RequestDelegate next)
 {
     private readonly RequestDelegate _next = next;
 
-    public static void ConfigureLogging(LogSettings settings)
-    {
-        // 不再需要独立的日志配置，使用 DicomLogger
-    }
-
     public async Task InvokeAsync(HttpContext context)
     {
         var sw = Stopwatch.StartNew();
@@ -21,17 +15,10 @@ public class ApiLoggingMiddleware(RequestDelegate next)
         {
             await _next(context);
             sw.Stop();
-
-            // 记录成功的请求
-            DicomLogger.Information("Api",
-                "[API] 请求成功 - {Method} {Path}",
-                context.Request.Method,
-                context.Request.Path);
         }
         catch (Exception ex)
         {
             sw.Stop();
-            // 记录失败的请求
             DicomLogger.Error("Api", ex,
                 "[API] 请求失败 - {Method} {Path}",
                 context.Request.Method,
