@@ -11,15 +11,17 @@ async function loadImages(page = 1) {
         const patientId = document.getElementById('images-searchPatientId')?.value || '';
         const patientName = document.getElementById('images-searchPatientName')?.value || '';
         const accessionNumber = document.getElementById('images-searchAccessionNumber')?.value || '';
+        const keyword = document.getElementById('images-searchKeyword')?.value || '';
         const modality = document.getElementById('images-searchModality')?.value || '';
         const studyDate = document.getElementById('images-searchStudyDate')?.value || '';
-        
+
         const params = {
             page,
             pageSize: imagesPageSize,
             patientId,
             patientName,
             accessionNumber,
+            keyword,
             modality,
             studyDate
         };

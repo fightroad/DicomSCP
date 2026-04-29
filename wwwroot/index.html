@@ -239,22 +239,26 @@
                 <!-- 添加查询表单 -->
                 <div class="card mb-3">
                     <div class="card-body p-2">
-                        <form id="imagesSearchForm" class="d-flex align-items-center flex-wrap">
-                            <div class="d-flex align-items-center me-2">
+                        <form id="imagesSearchForm" class="d-flex align-items-center flex-nowrap">
+                            <div class="d-flex align-items-center me-1">
                                 <span class="text-nowrap me-2">患者ID</span>
-                                <input type="text" class="form-control" style="width: 190px;" id="images-searchPatientId" placeholder="输入ID">
+                                <input type="text" class="form-control" style="width: 150px;" id="images-searchPatientId" placeholder="输入ID">
                             </div>
-                            <div class="d-flex align-items-center me-2">
+                            <div class="d-flex align-items-center me-1">
                                 <span class="text-nowrap me-2">姓名</span>
-                                <input type="text" class="form-control" style="width: 190px;" id="images-searchPatientName" placeholder="输入姓名">
+                                <input type="text" class="form-control" style="width: 150px;" id="images-searchPatientName" placeholder="输入姓名">
                             </div>
-                            <div class="d-flex align-items-center me-2">
+                            <div class="d-flex align-items-center me-1">
                                 <span class="text-nowrap me-2">检查号</span>
-                                <input type="text" class="form-control" style="width: 190px;" id="images-searchAccessionNumber" placeholder="输入检查号">
+                                <input type="text" class="form-control" style="width: 150px;" id="images-searchAccessionNumber" placeholder="输入检查号">
                             </div>
-                            <div class="d-flex align-items-center me-2">
+                            <div class="d-flex align-items-center me-1">
+                                <span class="text-nowrap me-2">关键字</span>
+                                <input type="text" class="form-control" style="width: 200px;" id="images-searchKeyword" placeholder="备注模糊搜索">
+                            </div>
+                            <div class="d-flex align-items-center me-1">
                                 <span class="text-nowrap me-2">类型</span>
-                                <select class="form-select" style="width: 190px;" id="images-searchModality">
+                                <select class="form-select" style="width: 150px;" id="images-searchModality">
                                     <option value="">全部</option>
                                     <option value="CT">CT</option>
                                     <option value="MR">MR</option>
@@ -272,11 +276,11 @@
                                     <option value="ECG">心电图</option>
                                 </select>
                             </div>
-                            <div class="d-flex align-items-center me-3">
+                            <div class="d-flex align-items-center me-2">
                                 <span class="text-nowrap me-2">时间</span>
-                                <input type="date" class="form-control" style="width: 190px;" id="images-searchStudyDate">
+                                <input type="date" class="form-control" style="width: 150px;" id="images-searchStudyDate">
                             </div>
-                            <div class="d-flex align-items-center">
+                            <div class="d-flex align-items-center flex-grow-1 justify-content-end ms-auto">
                                 <button type="submit" class="btn btn-primary me-2">
                                     <i class="bi bi-search"></i>
                                     查询
@@ -311,7 +315,7 @@
                                 <th>检查时间</th>
                                 <th>检查描述</th>
                                 <th>图像数</th>
-                                <th>备注</th>
+                                <th>检查备注</th>
                                 <th class="images-actions">操作</th>
                             </tr>
                         </thead>
@@ -332,6 +336,7 @@
                         text-overflow: ellipsis;
                         white-space: nowrap;
                     }
+
                 </style>
 
                 <!-- 添加影像分页组件 -->
