@@ -12,15 +12,15 @@ namespace DicomSCP.Services;
 
 public class CStoreSCP : DicomService, IDicomServiceProvider, IDicomCStoreProvider, IDicomCEchoProvider, IDisposable
 {
-    private static readonly DicomTransferSyntax[] _acceptedTransferSyntaxes = new[]
-    {
+    private static readonly DicomTransferSyntax[] _acceptedTransferSyntaxes =
+    [
         DicomTransferSyntax.ExplicitVRLittleEndian,
         DicomTransferSyntax.ImplicitVRLittleEndian,
         DicomTransferSyntax.ExplicitVRBigEndian
-    };
+    ];
 
-    private static readonly DicomTransferSyntax[] _acceptedImageTransferSyntaxes = new[]
-    {
+    private static readonly DicomTransferSyntax[] _acceptedImageTransferSyntaxes =
+    [
         DicomTransferSyntax.JPEGLSLossless,
         DicomTransferSyntax.JPEG2000Lossless,
         DicomTransferSyntax.RLELossless,
@@ -31,7 +31,7 @@ public class CStoreSCP : DicomService, IDicomServiceProvider, IDicomCStoreProvid
         DicomTransferSyntax.ExplicitVRLittleEndian,
         DicomTransferSyntax.ImplicitVRLittleEndian,
         DicomTransferSyntax.ExplicitVRBigEndian
-    };
+    ];
 
     private static string? StoragePath;
     private static string? TempPath;
@@ -74,7 +74,7 @@ public class CStoreSCP : DicomService, IDicomServiceProvider, IDicomCStoreProvid
     public CStoreSCP(
         INetworkStream stream, 
         Encoding fallbackEncoding, 
-        Microsoft.Extensions.Logging.ILogger log, 
+        ILogger log, 
         DicomServiceDependencies dependencies,
         IOptions<DicomSettings> settings)
         : base(stream, fallbackEncoding, log, dependencies)

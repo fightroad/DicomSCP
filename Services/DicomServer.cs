@@ -87,7 +87,6 @@ public sealed class DicomServer(
             // 配置工作列表服务
             WorklistSCP.Configure(
                 _settings,
-                _configuration,
                 _repository);
 
             try
