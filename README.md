@@ -7,7 +7,7 @@
 - PS:商业版是云RIS/PACS整体解决方案。开源的DicomSCP是一个完成度比较高的DICOM服务管理系统，可以理解它是解决方案里面一个服务组件。
 - 团队亦承接医院相关系统的定制开发和接口对接改造，有需求也可联系。
 - [项目Gitee仓库](https://gitee.com/fightroad/DicomSCP)  |  [项目GitHub仓库](https://github.com/fightroad/DicomSCP) 
-- 相关配套中台服务：[dicom-acquisition](https://gitee.com/fightroad/dicom-acquisition) | [dicom-server](https://gitee.com/fightroad/dicom-server) | [data-integration-engine](https://gitee.com/fightroad/data-integration-engine)
+- 相关配套中台系统：[dicom-acquisition](https://gitee.com/fightroad/dicom-acquisition) | [dicom-server](https://gitee.com/fightroad/dicom-server) | [data-integration-engine](https://gitee.com/fightroad/data-integration-engine)
 - 测试工具（用于联调与传输测试）：[pacs-explorer](https://gitee.com/fightroad/pacs-explorer) | [mini-scu](https://gitee.com/fightroad/mini-scu) | [DicomTransfer](https://gitee.com/fightroad/DicomTransfer) | [DicomStoreScp](https://gitee.com/fightroad/DicomStoreScp) | [DicomProxy_Viewer](https://gitee.com/fightroad/DicomProxy_Viewer)
 
 ## 整体解决方案部分功能预览
@@ -216,11 +216,11 @@
 
 ## 系统要求
 
-- Windows 10/11 或 Windows Server 2016+
+- Windows 10/11 或 Windows Server 2012+
 - .NET 8.0 或更高版本
 - SQLite 3.x
 - 8GB+ RAM
-- 40GB+ 可用磁盘空间
+- 100GB+ 可用磁盘空间
 - 现代浏览器（Chrome/Firefox/Edge）
 
 ## 构建和发布
@@ -237,8 +237,8 @@ dotnet publish -c Release -r win-x64 /p:SelfContained=true /p:PublishSingleFile=
 
 ## 快速开始
 
-1. 下载最新发布版本
-2. 修改 appsettings.json 配置文件
+1. 下载最新发布版本 [releases](https://gitee.com/fightroad/DicomSCP/releases)
+2. 修改 appsettings.json 配置文件 [appsettings.json](#配置说明)
 3. 运行 DicomSCP.exe
 4. 访问 http://localhost:5000  
 5. 默认账号 admin / admin
