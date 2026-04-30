@@ -14,12 +14,12 @@ namespace DicomSCP.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 public class PrintController(
-    DicomRepository repository,
+    PrintRepository repository,
     ILogger<PrintController> logger,
     IWebHostEnvironment environment,
     IConfiguration configuration) : Controller
 {
-    private readonly DicomRepository _repository = repository;
+    private readonly PrintRepository _repository = repository;
     private readonly ILogger<PrintController> _logger = logger;
     private readonly IWebHostEnvironment _environment = environment;
     private readonly DicomSettings _settings = configuration.GetSection("DicomSettings").Get<DicomSettings>()

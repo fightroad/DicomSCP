@@ -12,12 +12,12 @@ namespace DicomSCP.Controllers;
 [Route("api/[controller]")]
 public class PrintScuController(
     IPrintSCU printSCU,
-    DicomRepository repository,
+    PrintRepository repository,
     ILogger<PrintScuController> logger,
     IOptions<DicomSettings> settings) : ControllerBase
 {
     private readonly IPrintSCU _printSCU = printSCU;
-    private readonly DicomRepository _repository = repository;
+    private readonly PrintRepository _repository = repository;
     private readonly ILogger<PrintScuController> _logger = logger;
     private readonly DicomSettings _settings = settings.Value;
 

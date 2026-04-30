@@ -10,12 +10,12 @@ namespace DicomSCP.Services;
 public class PrintSCP : DicomService, IDicomServiceProvider, IDicomNServiceProvider, IDicomCEchoProvider
 {
     private static DicomSettings? _globalSettings;
-    private static DicomRepository? _globalRepository;
+    private static PrintRepository? _globalRepository;
 
     private readonly string _printPath;
     private readonly string _relativePrintPath = "prints";
     private readonly DicomSettings _settings;
-    private readonly DicomRepository _repository;
+    private readonly PrintRepository _repository;
 
     // 会话状态管理
     private class PrintSession
@@ -49,7 +49,7 @@ public class PrintSCP : DicomService, IDicomServiceProvider, IDicomNServiceProvi
         ["A3"] = (1754, 2480)          // A3 (297x420mm = 11.69x16.53英寸 -> 1754x2480)
     };
 
-    public static void Configure(DicomSettings settings, DicomRepository repository)
+    public static void Configure(DicomSettings settings, PrintRepository repository)
     {
         _globalSettings = settings ?? throw new ArgumentNullException(nameof(settings));
         _globalRepository = repository ?? throw new ArgumentNullException(nameof(repository));

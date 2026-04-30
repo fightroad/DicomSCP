@@ -132,6 +132,8 @@ builder.Services
 
 builder.Services.AddSingleton<DicomRepository>();
 builder.Services.AddSingleton<StudyBasicInfoRepository>();
+builder.Services.AddSingleton<PrintRepository>();
+builder.Services.AddSingleton<UserRepository>();
 builder.Services.AddSingleton<DicomDatasetPersistence>();
 builder.Services.AddSingleton<DicomServer>();
 builder.Services.AddSingleton<WorklistRepository>();
@@ -252,11 +254,6 @@ var dicomServer = app.Services.GetRequiredService<DicomServer>();
 await dicomServer.StartAsync();
 app.Lifetime.ApplicationStopping.Register(() => dicomServer.StopAsync().GetAwaiter().GetResult());
 
-// 优化线程池 - 基于CPU核心数
-int processorCount = Environment.ProcessorCount;
-ThreadPool.SetMinThreads(processorCount * 4, processorCount * 2);    // 最小线程数
-ThreadPool.SetMaxThreads(processorCount * 8, processorCount * 4);    // 最大线程数
-
 // 1. 转发头中间件（最先）
 app.UseForwardedHeaders();
 
@@ -328,12 +325,12 @@ app.Lifetime.ApplicationStarted.Register(() =>
     
     // 提取端口号
     var port = "5000";
-    if (httpUrl.Contains(":"))
+    if (httpUrl.Contains(':'))
     {
         var parts = httpUrl.Split(':');
         if (parts.Length >= 3)
         {
-            port = parts[parts.Length - 1];
+            port = parts[^1];
         }
     }
     

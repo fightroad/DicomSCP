@@ -257,7 +257,7 @@ dotnet publish -c Release -r win-x64 /p:SelfContained=true /p:PublishSingleFile=
 | `StoreSCPPort` | 存储服务监听端口（默认 11112） |
 | `StoragePath` | 接收影像的归档目录，相对路径相对程序工作目录 |
 | `TempPath` | 临时文件目录 |
-| `Advanced` | 存储高级选项：`ValidateCallingAE` / `AllowedCallingAEs` 控制呼叫方 AE 校验；`ConcurrentStoreLimit` 为 C-STORE 并发上限（大于 0 时用该值；为 0 时默认 `CPU 核心数 × 2`）；`EnableCompression`、`PreferredTransferSyntax` 等与压缩/传输语法相关 |
+| `Advanced` | 存储高级选项：`ValidateCallingAE` / `AllowedCallingAEs` 控制呼叫方 AE 校验；`EnableCompression`、`PreferredTransferSyntax` 等与压缩/传输语法相关 |
 | `WorklistSCP` | 工作列表服务：`AeTitle`、`Port`（默认 11113）、呼叫方 AE 白名单等 |
 | `QRSCP` | 查询检索 SCP：`Port`（默认 11114）、`MoveDestinations` 为 C-MOVE 目标节点列表（Name / AeTitle / HostName / Port） |
 | `PrintSCP` | 打印 SCP：`Port`（默认 11115）、`AllowedCallingAEs` 等 |

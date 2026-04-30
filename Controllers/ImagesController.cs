@@ -58,7 +58,7 @@ public class ImagesController : ControllerBase
                 }
             }
 
-            var result = await _repository.GetStudiesAsync(
+            var result = await _studyBasicInfoRepository.GetStudiesAsync(
                 page, 
                 pageSize, 
                 patientId, 
@@ -83,7 +83,7 @@ public class ImagesController : ControllerBase
     {
         try
         {
-            var seriesList = await _repository.GetSeriesByStudyUidAsync(studyUid);
+            var seriesList = await _studyBasicInfoRepository.GetSeriesByStudyUidAsync(studyUid);
             var result = seriesList.Select(series => new SeriesInfo
             {
                 SeriesInstanceUid = series.SeriesInstanceUid,
@@ -140,7 +140,7 @@ public class ImagesController : ControllerBase
                     DicomLogger.Information("Api", "删除检查目录成功 - 路径: {Path}", studyPath);
 
                     // 3. 删除数据库记录
-                    await _repository.DeleteStudyAsync(studyInstanceUid);
+                    await _studyBasicInfoRepository.DeleteStudyAsync(studyInstanceUid);
 
                     return Ok(new { message = "删除成功" });
                 }
@@ -153,7 +153,7 @@ public class ImagesController : ControllerBase
             else
             {
                 // 如果目录不存在，只删除数据库记录
-                await _repository.DeleteStudyAsync(studyInstanceUid);
+                await _studyBasicInfoRepository.DeleteStudyAsync(studyInstanceUid);
                 DicomLogger.Warning("Api", "检查目录不存在 - 路径: {Path}", studyPath);
                 return Ok(new { message = "删除成功" });
             }
