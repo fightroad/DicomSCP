@@ -19,20 +19,32 @@ public class DicomController(
     private readonly DicomSettings _settings = settings.Value;
     private readonly DicomDatasetPersistence _persistence = persistence;
 
+    // 缓存静态系统信息，避免每次请求都执行昂贵系统查询
+    private static string? _cachedCpuModel;
+    private static string? _cachedPlatformName;
+
+    // CPU 使用率采样缓存（跨请求增量计算）
+    private static readonly object _cpuLock = new();
+    private static DateTime _lastCpuSampleTimeUtc = DateTime.MinValue;
+    private static TimeSpan _lastProcessCpuTime = TimeSpan.Zero;
+    private static (long Idle, long Total)? _lastLinuxCpuStat;
+    private static float _windowsCpuUsage;
+    private static PerformanceCounter? _windowsCpuCounter;
+
     [HttpGet("status")]
     public IActionResult GetStatus()
     {
         var serverStatus = _server.GetServicesStatus();
         var process = Process.GetCurrentProcess();
         
-        // 获取程序内存使用情况（MB）
-        var processMemory = process.WorkingSet64 / 1024.0 / 1024.0;
+        // 获取进程私有内存使用情况（MB）
+        var processMemory = process.PrivateMemorySize64 / 1024.0 / 1024.0;
         
         // 获取系统信息
         double totalPhysicalMemory = 0;
         double availablePhysicalMemory = 0;
-        string cpuModel = "Unknown";
-        double cpuUsage = 0;
+        string cpuModel = GetCpuModelCached();
+        double cpuUsage = GetCpuUsage(process);
 
         try 
         {
@@ -46,20 +58,7 @@ public class DicomController(
                 var availableMemoryInBytes = performanceInfo.PhysicalAvailable.ToInt64() * performanceInfo.PageSize.ToInt64();
                 availablePhysicalMemory = availableMemoryInBytes / 1024.0 / 1024.0;  // 转换为 MB
 
-                // Windows CPU 信息
-                #pragma warning disable CA1416
-                using var searcher = new ManagementObjectSearcher("SELECT * FROM Win32_Processor");
-                cpuModel = searcher.Get()
-                    .Cast<ManagementObject>()
-                    .Select(obj => obj["Name"]?.ToString())
-                    .FirstOrDefault() ?? "Unknown";
-                #pragma warning restore CA1416
-
-                // Windows CPU 使用率
-                using var counter = new PerformanceCounter("Processor", "% Processor Time", "_Total", true);
-                counter.NextValue();
-                Thread.Sleep(100);
-                cpuUsage = counter.NextValue();
+                // CPU 信息和 CPU 使用率已使用缓存/增量采样计算
             }
             else if (OperatingSystem.IsLinux())
             {
@@ -77,49 +76,14 @@ public class DicomController(
                     }
                 }
 
-                // Linux CPU 型号
-                cpuModel = System.IO.File.ReadAllLines("/proc/cpuinfo")
-                    .FirstOrDefault(line => line.StartsWith("model name"))
-                    ?.Split(':')
-                    .LastOrDefault()
-                    ?.Trim() ?? "Unknown";
-
-                // Linux CPU 使用率
-                var startCpu = System.IO.File.ReadAllText("/proc/stat")
-                    .Split('\n')[0]
-                    .Split(' ', StringSplitOptions.RemoveEmptyEntries)
-                    .Skip(1)
-                    .Take(7)
-                    .Select(x => long.Parse(x))
-                    .ToArray();
-                
-                Thread.Sleep(100);
-                
-                var endCpu = System.IO.File.ReadAllText("/proc/stat")
-                    .Split('\n')[0]
-                    .Split(' ', StringSplitOptions.RemoveEmptyEntries)
-                    .Skip(1)
-                    .Take(7)
-                    .Select(x => long.Parse(x))
-                    .ToArray();
-
-                var startIdle = startCpu[3];
-                var endIdle = endCpu[3];
-                var startTotal = startCpu.Sum();
-                var endTotal = endCpu.Sum();
-
-                if (endTotal - startTotal > 0)
-                {
-                    cpuUsage = (1.0 - (endIdle - startIdle) / (double)(endTotal - startTotal)) * 100;
-                }
+                // CPU 信息和 CPU 使用率已使用缓存/增量采样计算
             }
             else if (OperatingSystem.IsMacOS())
             {
                 // macOS 系统信息获取 (需要通过 sysctl 命令)
                 totalPhysicalMemory = GetMacMemoryInfo();
-                availablePhysicalMemory = totalPhysicalMemory - GetMacMemoryUsage();
-                cpuModel = GetMacCpuInfo();
-                cpuUsage = GetMacCpuUsage();
+                availablePhysicalMemory = 0; // 暂未适配可用内存采集，后续按需实现
+                // CPU 信息和 CPU 使用率已使用缓存/增量采样计算
             }
         }
         catch (Exception ex)
@@ -172,9 +136,134 @@ public class DicomController(
                     minutes = (DateTime.Now - process.StartTime).Minutes
                 },
                 osVersion = RuntimeInformation.OSDescription,
-                platform = GetPlatformName()
+                platform = GetPlatformNameCached()
             }
         });
+    }
+
+    private static string GetCpuModelCached()
+    {
+        if (!string.IsNullOrEmpty(_cachedCpuModel))
+        {
+            return _cachedCpuModel;
+        }
+
+        try
+        {
+            if (OperatingSystem.IsWindows())
+            {
+                #pragma warning disable CA1416
+                using var searcher = new ManagementObjectSearcher("SELECT * FROM Win32_Processor");
+                _cachedCpuModel = searcher.Get()
+                    .Cast<ManagementObject>()
+                    .Select(obj => obj["Name"]?.ToString())
+                    .FirstOrDefault();
+                #pragma warning restore CA1416
+            }
+            else if (OperatingSystem.IsLinux())
+            {
+                _cachedCpuModel = System.IO.File.ReadAllLines("/proc/cpuinfo")
+                    .FirstOrDefault(line => line.StartsWith("model name"))
+                    ?.Split(':')
+                    .LastOrDefault()
+                    ?.Trim();
+            }
+            else if (OperatingSystem.IsMacOS())
+            {
+                _cachedCpuModel = ExecuteCommand("sysctl", "-n machdep.cpu.brand_string").Trim();
+            }
+        }
+        catch
+        {
+            // ignore and fallback
+        }
+
+        return string.IsNullOrEmpty(_cachedCpuModel) ? "Unknown" : _cachedCpuModel;
+    }
+
+    private static string GetPlatformNameCached()
+    {
+        if (!string.IsNullOrEmpty(_cachedPlatformName))
+        {
+            return _cachedPlatformName;
+        }
+
+        _cachedPlatformName = GetPlatformName();
+        return _cachedPlatformName;
+    }
+
+    private static double GetCpuUsage(Process process)
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            lock (_cpuLock)
+            {
+                #pragma warning disable CA1416
+                _windowsCpuCounter ??= new PerformanceCounter("Processor", "% Processor Time", "_Total", true);
+                var value = _windowsCpuCounter.NextValue();
+                #pragma warning restore CA1416
+                if (value > 0)
+                {
+                    _windowsCpuUsage = value;
+                }
+                return _windowsCpuUsage;
+            }
+        }
+
+        if (OperatingSystem.IsLinux())
+        {
+            lock (_cpuLock)
+            {
+                try
+                {
+                    var cpu = System.IO.File.ReadAllText("/proc/stat")
+                        .Split('\n')[0]
+                        .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                        .Skip(1)
+                        .Take(7)
+                        .Select(long.Parse)
+                        .ToArray();
+                    var current = (Idle: cpu[3], Total: cpu.Sum());
+                    if (_lastLinuxCpuStat.HasValue)
+                    {
+                        var idleDiff = current.Idle - _lastLinuxCpuStat.Value.Idle;
+                        var totalDiff = current.Total - _lastLinuxCpuStat.Value.Total;
+                        if (totalDiff > 0)
+                        {
+                            return (1.0 - idleDiff / (double)totalDiff) * 100;
+                        }
+                    }
+                    _lastLinuxCpuStat = current;
+                }
+                catch
+                {
+                    // fallback below
+                }
+            }
+        }
+
+        // 兜底：使用进程 CPU 增量估算（不阻塞）
+        lock (_cpuLock)
+        {
+            var now = DateTime.UtcNow;
+            var currentCpu = process.TotalProcessorTime;
+            if (_lastCpuSampleTimeUtc == DateTime.MinValue)
+            {
+                _lastCpuSampleTimeUtc = now;
+                _lastProcessCpuTime = currentCpu;
+                return 0;
+            }
+
+            var wallMs = (now - _lastCpuSampleTimeUtc).TotalMilliseconds;
+            var cpuMs = (currentCpu - _lastProcessCpuTime).TotalMilliseconds;
+
+            _lastCpuSampleTimeUtc = now;
+            _lastProcessCpuTime = currentCpu;
+
+            if (wallMs <= 0) return 0;
+            var usage = cpuMs / (wallMs * Environment.ProcessorCount) * 100.0;
+            return Math.Max(0, Math.Min(100, usage));
+        }
     }
 
     private static string GetPlatformName()
@@ -225,49 +314,7 @@ public class DicomController(
         }
     }
 
-    private double GetMacMemoryUsage()
-    {
-        try
-        {
-            var output = ExecuteCommand("vm_stat", "");
-            // 解析 vm_stat 输出获取内存使用情况
-            // ... 具体实现略
-            return 0;
-        }
-        catch
-        {
-            return 0;
-        }
-    }
-
-    private string GetMacCpuInfo()
-    {
-        try
-        {
-            return ExecuteCommand("sysctl", "-n machdep.cpu.brand_string").Trim();
-        }
-        catch
-        {
-            return "Unknown";
-        }
-    }
-
-    private double GetMacCpuUsage()
-    {
-        try
-        {
-            var output = ExecuteCommand("top", "-l 1 -n 0");
-            // 解析 top 输出获 CPU 使用率
-            // ... 具体实现略
-            return 0;
-        }
-        catch
-        {
-            return 0;
-        }
-    }
-
-    private string ExecuteCommand(string command, string arguments)
+    private static string ExecuteCommand(string command, string arguments)
     {
         using var process = new Process
         {

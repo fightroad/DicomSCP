@@ -2,8 +2,8 @@ class ServiceManager {
     constructor() {
         // 初始化状态更新
         this.updateStatus();
-        // 每30秒更新一次状态
-        setInterval(() => this.updateStatus(), 30000);
+        // 每3秒更新一次状态
+        setInterval(() => this.updateStatus(), 3000);
         // 绑定事件
         this.bindEvents();
     }
