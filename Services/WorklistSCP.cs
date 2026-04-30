@@ -210,7 +210,7 @@ public class WorklistSCP : DicomService, IDicomServiceProvider, IDicomCFindProvi
         return responses;
     }
 
-    private DicomCFindResponse CreateWorklistResponse(DicomCFindRequest request, WorklistItem item)
+    private static DicomCFindResponse CreateWorklistResponse(DicomCFindRequest request, WorklistItem item)
     {
         if (item == null)
         {
@@ -236,7 +236,6 @@ public class WorklistSCP : DicomService, IDicomServiceProvider, IDicomCFindProvi
             
             // 判断是否需要转换中文名
             bool needConvertName = true;
-            string patientName = item.PatientName;
 
             // 根据请求的字符集设置响应的字符集
             switch (requestedCharacterSet.ToUpperInvariant())
@@ -262,27 +261,10 @@ public class WorklistSCP : DicomService, IDicomServiceProvider, IDicomCFindProvi
                     break;
             }
 
-            // 根据字符集决定是否需要转换中文名
-            if (needConvertName)
-            {
-                patientName = ConvertToDeviceName(item.PatientName);
-                DicomLogger.Debug("WorklistSCP", 
-                    "转换患者姓名 - 原始名: {OriginalName}, 转换后: {ConvertedName}, 字符集: {CharacterSet}", 
-                    item.PatientName, 
-                    patientName,
-                    requestedCharacterSet);
-            }
-            else
-            {
-                DicomLogger.Debug("WorklistSCP", 
-                    "使用原始中文名 - 患者姓名: {PatientName}, 字符集: {CharacterSet}",
-                    patientName,
-                    requestedCharacterSet);
-            }
             
             // 患者信息
             dataset.Add(DicomTag.PatientID, ProcessDicomValue(item.PatientId, DicomTag.PatientID, needConvertName));
-            dataset.Add(DicomTag.PatientName, ProcessDicomValue(patientName, DicomTag.PatientName, needConvertName));
+            dataset.Add(DicomTag.PatientName, ProcessDicomValue(item.PatientName, DicomTag.PatientName, needConvertName));
             dataset.Add(DicomTag.PatientSex, ProcessDicomValue(item.PatientSex ?? "", DicomTag.PatientSex, needConvertName));
 
             // 确保出生日期格式正确
@@ -334,11 +316,7 @@ public class WorklistSCP : DicomService, IDicomServiceProvider, IDicomCFindProvi
             // 研究信息
             dataset.Add(DicomTag.StudyInstanceUID, ProcessDicomValue(item.StudyInstanceUid, DicomTag.StudyInstanceUID, needConvertName));
             dataset.Add(DicomTag.AccessionNumber, ProcessDicomValue(item.AccessionNumber, DicomTag.AccessionNumber, needConvertName));
-            // 医生姓名也需要根据字符集处理
-            var physicianName = needConvertName ?
-                ConvertToDeviceName(item.ReferringPhysicianName) : 
-                item.ReferringPhysicianName;
-            dataset.Add(DicomTag.ReferringPhysicianName, ProcessDicomValue(physicianName, DicomTag.ReferringPhysicianName, needConvertName));
+            dataset.Add(DicomTag.ReferringPhysicianName, ProcessDicomValue(item.ReferringPhysicianName, DicomTag.ReferringPhysicianName, needConvertName));
 
             // 预约信息（MWL标准结构：Scheduled Procedure Step Sequence）
             string spsStartDate;
@@ -347,18 +325,15 @@ public class WorklistSCP : DicomService, IDicomServiceProvider, IDicomCFindProvi
             {
                 if (!string.IsNullOrEmpty(item.ScheduledDateTime))
                 {
-                    DateTime scheduledDateTime;
                     string dateStr = item.ScheduledDateTime.Trim();
-                    string numericOnly = new(dateStr.Where(char.IsDigit).ToArray());
+                    string numericOnly = new([.. dateStr.Where(char.IsDigit)]);
 
                     if (numericOnly.Length >= 8)
                     {
                         string formattedDate;
                         if (numericOnly.Length >= 12)
                         {
-                            formattedDate = numericOnly.Substring(0, 8) +
-                                            (numericOnly.Length >= 12 ? numericOnly.Substring(8, 4) : "0000") +
-                                            (numericOnly.Length >= 14 ? numericOnly.Substring(12, 2) : "00");
+                            formattedDate = string.Concat(numericOnly.AsSpan(0, 8), numericOnly.Length >= 12 ? numericOnly.Substring(8, 4) : "0000", numericOnly.Length >= 14 ? numericOnly.Substring(12, 2) : "00");
                         }
                         else
                         {
@@ -369,7 +344,7 @@ public class WorklistSCP : DicomService, IDicomServiceProvider, IDicomCFindProvi
                             "yyyyMMddHHmmss",
                             CultureInfo.InvariantCulture,
                             DateTimeStyles.None,
-                            out scheduledDateTime))
+                            out DateTime scheduledDateTime))
                         {
                             spsStartDate = scheduledDateTime.ToString("yyyyMMdd");
                             spsStartTime = scheduledDateTime.ToString("HHmmss");
@@ -410,7 +385,7 @@ public class WorklistSCP : DicomService, IDicomServiceProvider, IDicomCFindProvi
                 { DicomTag.ScheduledProcedureStepStartDate, spsStartDate },
                 { DicomTag.ScheduledProcedureStepStartTime, spsStartTime },
                 { DicomTag.Modality, ProcessDicomValue(item.Modality, DicomTag.Modality, needConvertName) },
-                { DicomTag.ScheduledPerformingPhysicianName, ProcessDicomValue(physicianName, DicomTag.ScheduledPerformingPhysicianName, needConvertName) },
+                { DicomTag.ScheduledPerformingPhysicianName, ProcessDicomValue(item.ReferringPhysicianName, DicomTag.ScheduledPerformingPhysicianName, needConvertName) },
                 { DicomTag.ScheduledProcedureStepDescription, ProcessDicomValue(item.ScheduledProcedureStepDescription, DicomTag.ScheduledProcedureStepDescription, needConvertName) },
                 { DicomTag.ScheduledProcedureStepID, ProcessDicomValue(item.AccessionNumber, DicomTag.ScheduledProcedureStepID, needConvertName) },
                 { DicomTag.ScheduledStationName, ProcessDicomValue(item.ScheduledStationName, DicomTag.ScheduledStationName, needConvertName) },
@@ -435,7 +410,7 @@ public class WorklistSCP : DicomService, IDicomServiceProvider, IDicomCFindProvi
         }
     }
 
-    private WorklistQueryParameters ExtractQueryParameters(DicomCFindRequest request)
+    private static WorklistQueryParameters ExtractQueryParameters(DicomCFindRequest request)
     {
         // 记录原始请求参数
         DicomLogger.Debug("WorklistSCP", "接收到查询请求(过滤私有标签) - 数据集结构:\n{DatasetStructure}",
@@ -469,7 +444,7 @@ public class WorklistSCP : DicomService, IDicomServiceProvider, IDicomCFindProvi
         return parameters;
     }
 
-    private string GetModality(DicomDataset dataset)
+    private static string GetModality(DicomDataset dataset)
     {
         // 首先尝试从 ScheduledProcedureStep Sequence 获取
         var modality = string.Empty;
@@ -587,7 +562,7 @@ public class WorklistSCP : DicomService, IDicomServiceProvider, IDicomCFindProvi
             }
 
             // 移除最后一个分隔符（如果存在）
-            if (result.Length > 0 && result[result.Length - 1] == ' ')
+            if (result.Length > 0 && result[^1] == ' ')
             {
                 result.Length--;
             }
@@ -602,7 +577,7 @@ public class WorklistSCP : DicomService, IDicomServiceProvider, IDicomCFindProvi
     }
 
     // 处理 DICOM 值
-    private string ProcessDicomValue(string value, DicomTag tag, bool needConvertName)
+    private static string ProcessDicomValue(string value, DicomTag tag, bool needConvertName)
     {
         if (string.IsNullOrEmpty(value)) return "";
 

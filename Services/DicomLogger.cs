@@ -9,7 +9,7 @@ namespace DicomSCP.Services;
 /// </summary>
 public static class DicomLogger
 {
-    private static readonly Dictionary<string, ILogger> _loggers = new();
+    private static readonly Dictionary<string, ILogger> _loggers = [];
     private static LogSettings? _settings;
     private static ILogger? _logger;
 
@@ -181,7 +181,7 @@ public static class DicomLogger
         Log.Logger = serverLogger;
     }
 
-    private static ILogger CreateLogger(string serviceName, ServiceLogConfig config)
+    private static Serilog.Core.Logger CreateLogger(string serviceName, ServiceLogConfig config)
     {
         var logConfig = new LoggerConfiguration()
             .MinimumLevel.Is(config.MinimumLevel);
@@ -224,7 +224,7 @@ public static class DicomLogger
         return _logger ?? CreateDefaultLogger();
     }
 
-    private static ILogger CreateDefaultLogger()
+    private static Serilog.Core.Logger CreateDefaultLogger()
     {
         var logger = new LoggerConfiguration()
             .MinimumLevel.Information()
