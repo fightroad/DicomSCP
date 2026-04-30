@@ -80,19 +80,6 @@ BaseRepository.ConfigureLogging();
 // 配置框架日志
 var logConfig = new LoggerConfiguration()
     .MinimumLevel.Warning()  // 只记录警告以上的日志
-    .Filter.ByExcluding(e => 
-        e.Properties.ContainsKey("SourceContext") && 
-        e.Properties["SourceContext"].ToString().Contains("FellowOakDicom.Network") &&
-        (e.MessageTemplate.Text.Contains("No accepted presentation context found") ||
-         e.MessageTemplate.Text.Contains("Study Root Query/Retrieve Information Model - FIND") ||
-         e.MessageTemplate.Text.Contains("Patient Root Query/Retrieve Information Model - FIND") ||
-         e.MessageTemplate.Text.Contains("Storage Commitment Push Model SOP Class") ||
-         e.MessageTemplate.Text.Contains("Modality Performed Procedure Step") ||
-         e.MessageTemplate.Text.Contains("Basic Grayscale Print Management Meta") ||
-         e.MessageTemplate.Text.Contains("Basic Color Print Management Meta") ||
-         e.MessageTemplate.Text.Contains("Verification SOP Class") ||
-         e.MessageTemplate.Text.Contains("rejected association") ||
-         e.MessageTemplate.Text.Contains("Association received")))
     .WriteTo.Logger(lc => lc
         .WriteTo.Console(
             outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] [{SourceContext}] {Message:l}{NewLine}",
@@ -244,7 +231,10 @@ if (isFirstInitialization)
 
 var dicomPersistence = app.Services.GetRequiredService<DicomDatasetPersistence>();
 
-// 配置 DICOM
+// 配置 DICOM（启用跳过验证以兼容部分非标准数据）
+new DicomSetupBuilder()
+    .SkipValidation()
+    .Build();
 DicomSetupBuilder.UseServiceProvider(app.Services);
 
 CStoreSCP.Configure(settings, dicomPersistence);
