@@ -13,12 +13,10 @@ namespace DicomSCP.Controllers;
 public class DicomController(
     DicomServer server,
     IOptions<DicomSettings> settings,
-    DicomRepository repository,
     DicomDatasetPersistence persistence) : ControllerBase
 {
     private readonly DicomServer _server = server;
     private readonly DicomSettings _settings = settings.Value;
-    private readonly DicomRepository _repository = repository;
     private readonly DicomDatasetPersistence _persistence = persistence;
 
     [HttpGet("status")]
@@ -179,7 +177,7 @@ public class DicomController(
         });
     }
 
-    private string GetPlatformName()
+    private static string GetPlatformName()
     {
         if (OperatingSystem.IsWindows())
         {
@@ -210,7 +208,7 @@ public class DicomController(
 
     private double ParseLinuxMemInfo(string line)
     {
-        return double.Parse(line.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)[1]);
+        return double.Parse(line.Split([' '], StringSplitOptions.RemoveEmptyEntries)[1]);
     }
 
     private double GetMacMemoryInfo()

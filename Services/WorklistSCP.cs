@@ -21,11 +21,11 @@ public record WorklistQueryParameters(
 public class WorklistSCP : DicomService, IDicomServiceProvider, IDicomCFindProvider, IDicomCEchoProvider
 {
     private static DicomSettings? _settings;
-    private static DicomRepository? _repository;
+    private static WorklistRepository? _repository;
 
     public static void Configure(
         DicomSettings settings,
-        DicomRepository repository)
+        WorklistRepository repository)
     {
         _settings = settings ?? throw new ArgumentNullException(nameof(settings));
         _repository = repository ?? throw new ArgumentNullException(nameof(repository));

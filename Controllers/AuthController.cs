@@ -9,14 +9,9 @@ namespace DicomSCP.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class AuthController : ControllerBase
+public class AuthController(UserRepository repository) : ControllerBase
 {
-    private readonly DicomRepository _repository;
-
-    public AuthController(DicomRepository repository)
-    {
-        _repository = repository;
-    }
+    private readonly UserRepository _repository = repository;
 
     [HttpPost("login")]
     [AllowAnonymous]

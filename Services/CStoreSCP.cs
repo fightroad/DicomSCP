@@ -174,7 +174,7 @@ public class CStoreSCP : DicomService, IDicomServiceProvider, IDicomCStoreProvid
         }
     }
 
-    private bool IsImageStorage(DicomUID sopClass)
+    private static bool IsImageStorage(DicomUID sopClass)
     {
         // 检查是否是图像存储类别
         if (sopClass.StorageCategory == DicomStorageCategory.Image)
@@ -388,7 +388,7 @@ public class CStoreSCP : DicomService, IDicomServiceProvider, IDicomCStoreProvid
     }
 
     // 修改 UID 格式化方法
-    private string FormatUID(string uid)
+    private static string FormatUID(string uid)
     {
         try
         {
@@ -494,7 +494,7 @@ public class CStoreSCP : DicomService, IDicomServiceProvider, IDicomCStoreProvid
     }
 
     // 添加时间格式化方法
-    private string StandardizeDicomDate(string? dateValue)
+    private static string StandardizeDicomDate(string? dateValue)
     {
         if (string.IsNullOrEmpty(dateValue))
         {

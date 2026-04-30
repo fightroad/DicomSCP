@@ -8,15 +8,77 @@ namespace DicomSCP.Repository;
 public class WorklistRepository(
     IConfiguration configuration) : BaseRepository(configuration.GetConnectionString("DicomDb") ?? throw new ArgumentException("Missing DicomDb connection string"))
 {
-    public async Task<IEnumerable<WorklistItem>> GetAllAsync()
+    public List<WorklistItem> GetWorklistItems(
+        string patientId,
+        string patientName,
+        string accessionNumber,
+        (string StartDate, string EndDate) dateRange,
+        string modality,
+        string scheduledStationName)
     {
-        LogDebug("正在查询所有Worklist项目");
-        using var connection = new SqliteConnection(_connectionString);
-        var sql = @"
-            SELECT * FROM Worklist 
-            ORDER BY ScheduledDateTime DESC";
+        try
+        {
+            using var connection = CreateConnection();
+            var sql = @"
+                SELECT
+                    WorklistId,
+                    PatientId,
+                    substr(PatientName, 1, 64) AS PatientName,
+                    PatientBirthDate,
+                    PatientSex,
+                    StudyInstanceUid,
+                    StudyDescription,
+                    Modality,
+                    ScheduledAET,
+                    ScheduledDateTime,
+                    ScheduledStationName,
+                    ScheduledProcedureStepID,
+                    ScheduledProcedureStepDescription,
+                    RequestedProcedureID,
+                    RequestedProcedureDescription,
+                    substr(ReferringPhysicianName, 1, 64) AS ReferringPhysicianName,
+                    Status,
+                    substr(BodyPartExamined, 1, 64) AS BodyPartExamined,
+                    ReasonForRequest,
+                    CreateTime,
+                    UpdateTime,
+                    AccessionNumber
+                FROM Worklist
+                WHERE 1=1
+                AND (@PatientId = '' OR PatientId LIKE @PatientId)
+                AND (@PatientName = '' OR PatientName LIKE @PatientName)
+                AND (@AccessionNumber = '' OR AccessionNumber LIKE @AccessionNumber)
+                AND (@StartDate = '' OR @EndDate = '' OR 
+                     substr(ScheduledDateTime, 1, 8) >= @StartDate AND 
+                     substr(ScheduledDateTime, 1, 8) <= @EndDate)
+                AND (@Modality = '' OR Modality = @Modality)
+                AND (@ScheduledStationName = '' OR ScheduledStationName = @ScheduledStationName)
+                AND Status = 'SCHEDULED'
+                ORDER BY CreateTime DESC";
 
-        return await connection.QueryAsync<WorklistItem>(sql);
+            var parameters = new
+            {
+                PatientId = string.IsNullOrEmpty(patientId) ? "" : $"%{patientId}%",
+                PatientName = string.IsNullOrEmpty(patientName) ? "" : $"%{patientName}%",
+                AccessionNumber = string.IsNullOrEmpty(accessionNumber) ? "" : $"%{accessionNumber}%",
+                StartDate = dateRange.StartDate,
+                EndDate = dateRange.EndDate,
+                Modality = string.IsNullOrEmpty(modality) ? "" : modality,
+                ScheduledStationName = string.IsNullOrEmpty(scheduledStationName) ? "" : scheduledStationName
+            };
+
+            LogDebug("执行工作列表查询 - SQL: {Sql}, 参数: {@Parameters}", sql, parameters);
+
+            var items = connection.Query<WorklistItem>(sql, parameters);
+            var result = items?.ToList() ?? [];
+            LogInformation("工作列表查询完成 - 返回记录数: {Count}", result.Count);
+            return result;
+        }
+        catch (Exception ex)
+        {
+            LogError(ex, "工作列表查询失败");
+            throw;
+        }
     }
 
     public async Task<PagedResult<WorklistItem>> GetPagedAsync(
