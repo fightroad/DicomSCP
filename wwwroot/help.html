@@ -58,7 +58,7 @@
                             <dd>允许的调用方AE Title列表，当ValidateCallingAE为true时生效。例如：["WORKSTATION1", "PACS1"]</dd>
                             
                             <dt>ConcurrentStoreLimit</dt>
-                            <dd>并发存储限制，0表示不限制。建议值：根据服务器性能设置，如4或8</dd>
+                            <dd>并发存储限制：大于 0 时为本服务同时处理的 C-STORE 上限；为 0 时按 CPU 核心数×2 作为默认上限。可按机器性能设为 4、8 等</dd>
                             
                             <dt>EnableCompression</dt>
                             <dd>是否启用压缩，影响存储和传输性能。默认：false</dd>

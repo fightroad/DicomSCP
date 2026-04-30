@@ -209,7 +209,6 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
     options.KnownProxies.Clear();
 });
 
-// 在 ConfigureServices 部分添加
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", 
@@ -241,8 +240,6 @@ if (isFirstInitialization)
     DicomLogger.Information("Database", "[DB] 数据库表首次初始化完成");
 }
 
-// 获取服务
-var dicomRepository = app.Services.GetRequiredService<DicomRepository>();
 var dicomPersistence = app.Services.GetRequiredService<DicomDatasetPersistence>();
 
 // 配置 DICOM
