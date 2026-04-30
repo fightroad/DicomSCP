@@ -63,8 +63,7 @@ public class AdvancedSettings
 {
     public bool ValidateCallingAE { get; set; } = false;
     public string[] AllowedCallingAEs { get; set; } = Array.Empty<string>();
-    public int ConcurrentStoreLimit { get; set; } = 0;
-    
+
     public bool EnableCompression { get; set; } = false;
     public string PreferredTransferSyntax { get; set; } = "JPEG2000Lossless";
 }
