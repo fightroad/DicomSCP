@@ -1,4 +1,4 @@
-## 中文开源社区最完善、集成度最高的医学影像轻量级PACS系统
+## 🏆 中文开源社区高完成度的 DICOM / PACS 基础服务组件
 
 <p>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License" /></a>
@@ -11,17 +11,34 @@
   <a href="https://gitee.com/fightroad/DicomSCP"><img src="https://visitor-badge.laobi.icu/badge?page_id=gitee-fightroad-DicomSCP" alt="Visitors" /></a>
 </p>
 
-- 基于 .NET Core 的 DICOM SCP（Service Class Provider）服务器，提供 DICOM 存储、工作列表、查询检索服务，打印服务，WADO/DicomWeb服务，集成了功能强大的DICOM 桌面和Web查看器。
-- 推荐使用 [Docker部署](#docker部署) 有推送会自动发布镜像。最新版本可以自行拉取dev分支构建，windows发行版不定期发布。
-- 项目用爱发电，作者多年医学影像从业者，旨在为中文医学影像提供一个免费的轻量级PACS解决方案。仅供大家学习参考，不限制使用，请遵守[MIT许可协议](LICENSE)。如果这个项目对您有帮助，欢迎[赞助](#赞助项目)支持我们继续改进！
-- 另有完整商业版云RIS/PACS（区域云影像）和云胶片（数字胶片）解决方案助力紧密型医共体和医保影像云，有相关需求可以联系咨询！ 微信/QQ同号：30760655
-- PS:商业版是云RIS/PACS整体解决方案。开源的DicomSCP是一个完成度比较高的DICOM服务管理系统，可以理解它是解决方案里面一个服务组件。
-- 团队亦承接医院相关系统的定制开发和接口对接改造，有需求也可联系。
-- [项目Gitee仓库](https://gitee.com/fightroad/DicomSCP)  |  [项目GitHub仓库](https://github.com/fightroad/DicomSCP) 
-- 相关配套系统：[dicom-acquisition](https://gitee.com/fightroad/dicom-acquisition) | [dicom-server](https://gitee.com/fightroad/dicom-server) | [data-integration-engine](https://gitee.com/fightroad/data-integration-engine)
-- 测试工具（用于联调与传输测试）：[pacs-explorer](https://gitee.com/fightroad/pacs-explorer) | [mini-scu](https://gitee.com/fightroad/mini-scu) | [DicomTransfer](https://gitee.com/fightroad/DicomTransfer) | [DicomStoreScp](https://gitee.com/fightroad/DicomStoreScp) | [DicomProxy_Viewer](https://gitee.com/fightroad/DicomProxy_Viewer)
+**快速入口**：[`快速开始`](#快速开始) | [`Docker部署`](#docker部署) | [`配置说明`](#配置说明) | [`商业咨询（微信/QQ：30760655）`](#commercial-consult)
 
-## 整体商业解决方案部分预览
+> 关键词：开源 DICOM SCP、轻量级 PACS、DICOMWeb（WADO-RS / QIDO-RS）、Worklist、Query/Retrieve、医学影像系统集成。
+
+- DicomSCP 是一个基于 .NET Core 的 DICOM 医学影像基础服务组件，提供轻量级 PACS 核心能力，可用于 DICOM 接入、影像存储、查询检索与系统集成。
+- 本项目由多年医学影像从业经验积累而来，旨在为中文医学影像生态提供一个轻量、开放、可扩展的 DICOM/PACS 基础设施实现。不限制使用，请遵守[MIT许可协议](LICENSE)。如果项目对您有帮助，欢迎[赞助](#赞助项目)支持我们继续改进！
+- 提供完整商业版云RIS/PACS（区域云影像）和云胶片（数字胶片）解决方案助力紧密型医共体和医保影像云，有相关需求可以联系咨询！ 微信/QQ：30760655
+- 团队专注医疗信息化领域，可提供医院相关系统的定制开发和接口对接改造服务，有需求可联系。
+- 相关配套子系统介绍：[dicom-acquisition](https://gitee.com/fightroad/dicom-acquisition) | [dicom-server](https://gitee.com/fightroad/dicom-server) | [data-integration-engine](https://gitee.com/fightroad/data-integration-engine)
+- 测试工具（用于联调与传输测试）：[pacs-explorer](https://gitee.com/fightroad/pacs-explorer) | [mini-scu](https://gitee.com/fightroad/mini-scu) | [DicomTransfer](https://gitee.com/fightroad/DicomTransfer) | [DicomStoreScp](https://gitee.com/fightroad/DicomStoreScp) | [DicomProxy_Viewer](https://gitee.com/fightroad/DicomProxy_Viewer)
+- [项目Gitee仓库](https://gitee.com/fightroad/DicomSCP)  |  [项目GitHub仓库](https://github.com/fightroad/DicomSCP) 
+
+<a id="commercial-consult"></a>
+## 🔗 开源 vs 商业版本
+
+| 维度 | DicomSCP（开源） | 商业解决方案 |
+|------|------------------|--------------|
+| 定位 | DICOM/PACS 基础服务组件 | 医疗影像完整业务系统 |
+| 面向对象 | 开发者 / 研究人员 / AI团队 | 医院 / 医疗企业 / 集成商 |
+| 目标用途 | 技术学习 / PoC验证 / 系统联调 | 生产环境部署 / 业务系统建设 |
+| 覆盖范围 | DICOM核心服务能力（SCP / Worklist / Query / WADO等） | RIS + PACS + 云影像 + 云胶片 + 系统集成 |
+| 系统形态 | 独立基础服务组件 | 完整医疗影像业务平台 |
+| 部署方式 | Docker / 本地快速运行 | 私有化部署 / 多院区架构 / 云平台部署 |
+| 维护模式 | 社区维护（开源） | 项目制交付 + 定制支持 |
+| 扩展能力 | 提供基础接口与协议实现 | 支持医院系统对接（HIS / EMR / AI影像平台） |
+
+
+## 商业解决方案部分预览
 ![商业ris](about/商业报告.png)
 ![Risreport](about/risreport.png)
 ![DicomServer](about/DicomServer.png)
