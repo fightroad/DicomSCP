@@ -1,5 +1,13 @@
 ## 中文开源社区最完善、集成度最高的医学影像轻量级PACS系统
 
+<p>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License" /></a>
+  <a href="https://dotnet.microsoft.com/"><img src="https://img.shields.io/badge/.NET-8.0-512BD4?logo=dotnet" alt=".NET" /></a>
+  <a href="https://gitee.com/fightroad/DicomSCP"><img src="https://gitee.com/fightroad/DicomSCP/badge/star.svg?theme=white" alt="Gitee" /></a>
+  <a href="https://github.com/fightroad/DicomSCP"><img src="https://img.shields.io/badge/GitHub-仓库-181717?logo=github" alt="GitHub" /></a>
+  <a href="https://gitee.com/fightroad/DicomSCP"><img src="https://visitor-badge.laobi.icu/badge?page_id=gitee-fightroad-DicomSCP" alt="访客" /></a>
+</p>
+
 - 基于 .NET Core 的 DICOM SCP（Service Class Provider）服务器，提供 DICOM 存储、工作列表、查询检索服务，打印服务，WADO/DicomWeb服务，集成了功能强大的DICOM 桌面和Web查看器。
 - 推荐使用 [Docker部署](#docker部署) 有推送会自动发布镜像。最新版本可以自行拉取dev分支构建，windows发行版不定期发布。
 - 项目用爱发电，作者多年医学影像从业者，旨在为中文医学影像提供一个免费的轻量级PACS解决方案。仅供大家学习参考，不限制使用，请遵守[MIT许可协议](LICENSE)。如果这个项目对您有帮助，欢迎[赞助](#赞助项目)支持我们继续改进！
@@ -13,6 +21,7 @@
 ## 整体商业解决方案部分预览
 ![商业ris](about/商业报告.png)
 ![Risreport](about/risreport.png)
+![DcmViewer](about/DcmViewer.png)
 ![viewer](about/report.png) ![viewer](about/mobileviewer.png)
 ![DicomServer](about/DicomServer.png)
 
