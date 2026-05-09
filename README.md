@@ -7,17 +7,14 @@
 - PS:商业版是云RIS/PACS整体解决方案。开源的DicomSCP是一个完成度比较高的DICOM服务管理系统，可以理解它是解决方案里面一个服务组件。
 - 团队亦承接医院相关系统的定制开发和接口对接改造，有需求也可联系。
 - [项目Gitee仓库](https://gitee.com/fightroad/DicomSCP)  |  [项目GitHub仓库](https://github.com/fightroad/DicomSCP) 
-- 相关配套中台系统：[dicom-acquisition](https://gitee.com/fightroad/dicom-acquisition) | [dicom-server](https://gitee.com/fightroad/dicom-server) | [data-integration-engine](https://gitee.com/fightroad/data-integration-engine)
+- 相关配套系统：[dicom-acquisition](https://gitee.com/fightroad/dicom-acquisition) | [dicom-server](https://gitee.com/fightroad/dicom-server) | [data-integration-engine](https://gitee.com/fightroad/data-integration-engine)
 - 测试工具（用于联调与传输测试）：[pacs-explorer](https://gitee.com/fightroad/pacs-explorer) | [mini-scu](https://gitee.com/fightroad/mini-scu) | [DicomTransfer](https://gitee.com/fightroad/DicomTransfer) | [DicomStoreScp](https://gitee.com/fightroad/DicomStoreScp) | [DicomProxy_Viewer](https://gitee.com/fightroad/DicomProxy_Viewer)
 
-## 整体解决方案部分功能预览
-![后台管理](about/后台管理.png)
+## 整体商业解决方案部分预览
 ![商业ris](about/商业报告.png)
 ![Risreport](about/risreport.png)
-![CloudFilm](about/cloudfilm.png)
 ![viewer](about/report.png) ![viewer](about/mobileviewer.png)
-![Dicomserver](about/DicomServer.png)
-
+![DicomServer](about/DicomServer.png)
 
 ## 赞助项目
 
