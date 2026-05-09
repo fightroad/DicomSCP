@@ -21,9 +21,9 @@
 ## 整体商业解决方案部分预览
 ![商业ris](about/商业报告.png)
 ![Risreport](about/risreport.png)
-![DcmViewer](about/DcmViewer.png)
-![viewer](about/report.png) ![viewer](about/mobileviewer.png)
 ![DicomServer](about/DicomServer.png)
+![viewer](about/report.png) ![viewer](about/mobileviewer.png)
+
 
 ## 赞助项目
 
