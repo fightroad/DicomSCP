@@ -3,8 +3,11 @@
 <p>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License" /></a>
   <a href="https://dotnet.microsoft.com/"><img src="https://img.shields.io/badge/.NET-8.0-512BD4?logo=dotnet" alt=".NET" /></a>
-  <a href="https://gitee.com/fightroad/DicomSCP"><img src="https://gitee.com/fightroad/DicomSCP/badge/star.svg?theme=white" alt="Gitee" /></a>
-  <a href="https://github.com/fightroad/DicomSCP"><img src="https://img.shields.io/badge/GitHub-仓库-181717?logo=github" alt="GitHub" /></a>
+  <a href="https://github.com/fightroad/DicomSCP/releases/latest"><img src="https://img.shields.io/github/v/release/fightroad/DicomSCP?label=版本&logo=github&color=blue" alt="版本" /></a>
+  <a href="https://gitee.com/fightroad/DicomSCP"><img src="https://gitee.com/fightroad/DicomSCP/badge/star.svg?theme=white" alt="Gitee Stars" /></a>
+  <a href="https://gitee.com/fightroad/DicomSCP"><img src="https://img.shields.io/badge/Gitee-主仓库-C71D23" alt="Gitee 主仓库" /></a>
+  <a href="https://github.com/fightroad/DicomSCP"><img src="https://img.shields.io/github/stars/fightroad/DicomSCP?label=GitHub%20Stars&logo=github&color=181717" alt="GitHub Stars" /></a>
+  <a href="https://github.com/fightroad/DicomSCP"><img src="https://img.shields.io/badge/GitHub-同步镜像-181717?logo=github" alt="GitHub 同步镜像" /></a>
   <a href="https://gitee.com/fightroad/DicomSCP"><img src="https://visitor-badge.laobi.icu/badge?page_id=gitee-fightroad-DicomSCP" alt="访客" /></a>
 </p>
 
