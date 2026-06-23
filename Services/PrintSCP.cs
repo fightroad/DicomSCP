@@ -334,7 +334,14 @@ public class PrintSCP : DicomService, IDicomServiceProvider, IDicomNServiceProvi
 
             // 获取布局格式
             var imageDisplayFormat = request.Dataset?.GetSingleValueOrDefault(DicomTag.ImageDisplayFormat, "STANDARD\\1,1") ?? "STANDARD\\1,1";
-            var layoutParts = imageDisplayFormat.Split('\\')[1].Split(',');
+            var formatParts = imageDisplayFormat.Split('\\');
+            if (formatParts.Length < 2)
+            {
+                DicomLogger.Warning("PrintSCP", "布局格式不合法（缺少反斜杠分隔）: {Format}", imageDisplayFormat);
+                return new DicomNCreateResponse(request, DicomStatus.InvalidAttributeValue);
+            }
+
+            var layoutParts = formatParts[1].Split(',');
             if (layoutParts.Length != 2 || !int.TryParse(layoutParts[0], out int columns) || !int.TryParse(layoutParts[1], out int rows))
             {
                 DicomLogger.Warning("PrintSCP", "无效的布局格式: {Format}", imageDisplayFormat);
@@ -497,7 +504,14 @@ public class PrintSCP : DicomService, IDicomServiceProvider, IDicomNServiceProvi
 
             // 获取并验证布局格式
             var displayFormat = _session.CurrentFilmBox.Dataset.GetSingleValueOrDefault(DicomTag.ImageDisplayFormat, "STANDARD\\1,1");
-            var layoutParts = displayFormat.Split('\\')[1].Split(',');
+            var displayFormatParts = displayFormat.Split('\\');
+            if (displayFormatParts.Length < 2)
+            {
+                DicomLogger.Warning("PrintSCP", "布局格式不合法（缺少反斜杠分隔）: {Format}", displayFormat);
+                return new DicomNActionResponse(request, DicomStatus.InvalidAttributeValue);
+            }
+
+            var layoutParts = displayFormatParts[1].Split(',');
             if (layoutParts.Length != 2 || !int.TryParse(layoutParts[0], out int columns) || !int.TryParse(layoutParts[1], out int rows))
             {
                 DicomLogger.Warning("PrintSCP", "无效的布局格式: {Format}", displayFormat);
