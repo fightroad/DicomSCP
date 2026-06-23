@@ -18,9 +18,9 @@
 - DicomSCP 是一个基于 .NET Core 的 DICOM 医学影像基础服务组件，提供轻量级 PACS 核心能力，可用于 DICOM 接入、影像存储、查询检索与系统集成。
 - 本项目由多年医学影像从业经验积累而来，旨在为中文医学影像生态提供一个轻量、开放、可扩展的 DICOM/PACS 基础设施实现。不限制使用，请遵守[MIT许可协议](LICENSE)。如果项目对您有帮助，欢迎[赞助](#赞助项目)支持我们继续改进！
 - 提供完整商业版云RIS/PACS（区域云影像）和云胶片（数字胶片）解决方案助力紧密型医共体和医保影像云，亦可提供医疗信息化相关的定制开发和接口改造服务，有相关需求可以联系咨询！ 微信/QQ：30760655
-- 相关配套子系统介绍：[dicom-acquisition](https://gitee.com/fightroad/dicom-acquisition) | [dicom-server](https://gitee.com/fightroad/dicom-server) | [data-integration-engine](https://gitee.com/fightroad/data-integration-engine)
+- 相关商业版配套子系统：[CloudRIS](https://www.cloudpacs.top/archives/cloudris-yun-ying-xiang-xin-xi-xi-tong) | [CloudFilm](https://www.cloudpacs.top/archives/dian-zi-yun-jiao-pian-xi-tong) | [DicomServer](https://www.cloudpacs.top/archives/2025-10-27-10-48-15) | [DCMViewer](https://www.cloudpacs.top/archives/dcmviewer%E5%8C%BB%E5%AD%A6%E5%BD%B1%E5%83%8F%E6%B5%8F%E8%A7%88%E5%99%A8) | [Acquisition-Engine](https://www.cloudpacs.top/archives/rispacsdicom%E5%BD%B1%E5%83%8F%E9%87%87%E9%9B%86%E7%B3%BB%E7%BB%9F) | [Integration-Engine](https://www.cloudpacs.top/archives/ji-yu-shu-ju-ku-de-webapi-ji-cheng-fa-bu-fu-wu)
 - 测试工具（用于联调与传输测试）：[pacs-explorer](https://gitee.com/fightroad/pacs-explorer) | [mini-scu](https://gitee.com/fightroad/mini-scu) | [DicomTransfer](https://gitee.com/fightroad/DicomTransfer) | [DicomStoreScp](https://gitee.com/fightroad/DicomStoreScp) | [DicomProxy_Viewer](https://gitee.com/fightroad/DicomProxy_Viewer)
-- [项目Gitee仓库](https://gitee.com/fightroad/DicomSCP)  |  [项目GitHub仓库](https://github.com/fightroad/DicomSCP) 
+- [项目Gitee仓库](https://gitee.com/fightroad/DicomSCP)  |  [项目GitHub仓库](https://github.com/fightroad/DicomSCP)
 
 <a id="commercial-consult"></a>
 ## 🔗 开源 vs 商业版本
