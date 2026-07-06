@@ -13,8 +13,7 @@ public class WorklistRepository(
         string patientName,
         string accessionNumber,
         (string StartDate, string EndDate) dateRange,
-        string modality,
-        string scheduledStationName)
+        string modality)
     {
         try
         {
@@ -52,7 +51,6 @@ public class WorklistRepository(
                      substr(ScheduledDateTime, 1, 8) >= @StartDate AND 
                      substr(ScheduledDateTime, 1, 8) <= @EndDate)
                 AND (@Modality = '' OR Modality = @Modality)
-                AND (@ScheduledStationName = '' OR ScheduledStationName = @ScheduledStationName)
                 AND Status = 'SCHEDULED'
                 ORDER BY CreateTime DESC";
 
@@ -63,8 +61,7 @@ public class WorklistRepository(
                 AccessionNumber = string.IsNullOrEmpty(accessionNumber) ? "" : $"%{accessionNumber}%",
                 StartDate = dateRange.StartDate,
                 EndDate = dateRange.EndDate,
-                Modality = string.IsNullOrEmpty(modality) ? "" : modality,
-                ScheduledStationName = string.IsNullOrEmpty(scheduledStationName) ? "" : scheduledStationName
+                Modality = string.IsNullOrEmpty(modality) ? "" : modality
             };
 
             LogDebug("执行工作列表查询 - SQL: {Sql}, 参数: {@Parameters}", sql, parameters);

@@ -15,8 +15,7 @@ public record WorklistQueryParameters(
     string PatientName,
     string AccessionNumber,
     (string StartDate, string EndDate) DateRange,
-    string Modality,
-    string ScheduledStationName);
+    string Modality);
 
 public class WorklistSCP : DicomService, IDicomServiceProvider, IDicomCFindProvider, IDicomCEchoProvider
 {
@@ -164,8 +163,7 @@ public class WorklistSCP : DicomService, IDicomServiceProvider, IDicomCFindProvi
                 parameters.PatientName,
                 parameters.AccessionNumber,
                 parameters.DateRange,
-                parameters.Modality,
-                parameters.ScheduledStationName) ?? new List<WorklistItem>();
+                parameters.Modality) ?? new List<WorklistItem>();
 
             DicomLogger.Information("WorklistSCP", "查询到工作列表项: {Count} 条记录", worklistItems.Count);
         }
@@ -427,19 +425,16 @@ public class WorklistSCP : DicomService, IDicomServiceProvider, IDicomCFindProvi
             patientName,
             request.Dataset.GetSingleValueOrDefault<string>(DicomTag.AccessionNumber, string.Empty),
             dateRange,
-            modality,
-            request.Dataset.GetSingleValueOrDefault<string>(DicomTag.ScheduledStationName, string.Empty)
-        );
+            modality);
 
         DicomLogger.Debug("WorklistSCP", "解析后的查询参数 - PatientId: {PatientId}, PatientName: {PatientName}, " +
-            "AccessionNumber: {AccessionNumber}, 日期范围: {StartDate} - {EndDate}, Modality: {Modality}, StationName: {StationName}",
+            "AccessionNumber: {AccessionNumber}, 日期范围: {StartDate} - {EndDate}, Modality: {Modality}",
             parameters.PatientId,
             parameters.PatientName,
             parameters.AccessionNumber,
             parameters.DateRange.StartDate,
             parameters.DateRange.EndDate,
-            parameters.Modality,
-            parameters.ScheduledStationName);
+            parameters.Modality);
 
         return parameters;
     }
@@ -585,7 +580,7 @@ public class WorklistSCP : DicomService, IDicomServiceProvider, IDicomCFindProvi
         string processedValue = value;
 
         // 1. 先处理 CS 类型的特殊要求
-        if (vr.Name == "CS")
+        if (vr == DicomVR.CS)
         {
             // CS 类型的字符限制：只允许大写字母、数字、空格和下划线
             processedValue = new string(
