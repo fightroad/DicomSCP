@@ -8,7 +8,8 @@
   <a href="https://gitee.com/fightroad/DicomSCP"><img src="https://img.shields.io/badge/Gitee-Main%20Repo-C71D23" alt="Gitee Main Repo" /></a>
   <a href="https://github.com/fightroad/DicomSCP"><img src="https://img.shields.io/github/stars/fightroad/DicomSCP?label=GitHub%20Stars&logo=github&color=181717" alt="GitHub Stars" /></a>
   <a href="https://github.com/fightroad/DicomSCP"><img src="https://img.shields.io/badge/GitHub-Mirror-181717?logo=github" alt="GitHub Mirror" /></a>
-  <a href="https://gitee.com/fightroad/DicomSCP"><img src="https://visitor-badge.laobi.icu/badge?page_id=gitee-fightroad-DicomSCP" alt="Visitors" /></a>
+<a href="https://gitee.com/fightroad/DicomSCP"><img src="https://visit.cloudpacs.top/badge?project=gitee-fightroad-DicomSCP" alt="Visitors" />
+</a>
 </p>
 
 **快速入口**：[`快速开始`](#快速开始) | [`Docker部署`](#docker部署) | [`配置说明`](#配置说明) | [`商业咨询（微信/QQ：30760655）`](#commercial-consult)
