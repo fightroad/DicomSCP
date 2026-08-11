@@ -28,6 +28,7 @@ public class DicomController(
     private static DateTime _lastCpuSampleTimeUtc = DateTime.MinValue;
     private static TimeSpan _lastProcessCpuTime = TimeSpan.Zero;
     private static (long Idle, long Total)? _lastLinuxCpuStat;
+    private static (ulong User, ulong System, ulong Idle, ulong Nice)? _lastMacCpuStat;
     private static float _windowsCpuUsage;
     private static PerformanceCounter? _windowsCpuCounter;
 
@@ -36,9 +37,12 @@ public class DicomController(
     {
         var serverStatus = _server.GetServicesStatus();
         var process = Process.GetCurrentProcess();
-        
-        // 获取进程私有内存使用情况（MB）
-        var processMemory = process.PrivateMemorySize64 / 1024.0 / 1024.0;
+        process.Refresh();
+
+        // Windows 用私有内存；macOS/Linux 用工作集(RSS)，更接近活动监视器/系统监视器
+        var processMemory = (OperatingSystem.IsWindows()
+            ? process.PrivateMemorySize64
+            : process.WorkingSet64) / 1024.0 / 1024.0;
         
         // 获取系统信息
         double totalPhysicalMemory = 0;
@@ -80,10 +84,8 @@ public class DicomController(
             }
             else if (OperatingSystem.IsMacOS())
             {
-                // macOS 系统信息获取 (需要通过 sysctl 命令)
-                totalPhysicalMemory = GetMacMemoryInfo();
-                availablePhysicalMemory = 0; // 暂未适配可用内存采集，后续按需实现
-                // CPU 信息和 CPU 使用率已使用缓存/增量采样计算
+                // macOS: sysctl 获取总量，vm_stat 估算可用内存
+                (totalPhysicalMemory, availablePhysicalMemory) = GetMacMemoryInfo();
             }
         }
         catch (Exception ex)
@@ -170,7 +172,13 @@ public class DicomController(
             }
             else if (OperatingSystem.IsMacOS())
             {
+                // Intel 有 brand_string；Apple Silicon 常为空，回退 hw.model
                 _cachedCpuModel = ExecuteCommand("sysctl", "-n machdep.cpu.brand_string").Trim();
+                if (string.IsNullOrWhiteSpace(_cachedCpuModel))
+                {
+                    var model = ExecuteCommand("sysctl", "-n hw.model").Trim();
+                    _cachedCpuModel = string.IsNullOrWhiteSpace(model) ? null : model;
+                }
             }
         }
         catch
@@ -242,6 +250,40 @@ public class DicomController(
             }
         }
 
+        if (OperatingSystem.IsMacOS())
+        {
+            lock (_cpuLock)
+            {
+                try
+                {
+                    if (TryGetMacCpuLoad(out var current))
+                    {
+                        if (_lastMacCpuStat is { } last)
+                        {
+                            var userDiff = current.User - last.User;
+                            var sysDiff = current.System - last.System;
+                            var idleDiff = current.Idle - last.Idle;
+                            var niceDiff = current.Nice - last.Nice;
+                            var totalDiff = userDiff + sysDiff + idleDiff + niceDiff;
+                            _lastMacCpuStat = current;
+                            if (totalDiff > 0)
+                            {
+                                return (userDiff + sysDiff + niceDiff) * 100.0 / totalDiff;
+                            }
+                        }
+                        else
+                        {
+                            _lastMacCpuStat = current;
+                        }
+                    }
+                }
+                catch
+                {
+                    // fallback below
+                }
+            }
+        }
+
         // 兜底：使用进程 CPU 增量估算（不阻塞）
         lock (_cpuLock)
         {
@@ -300,19 +342,81 @@ public class DicomController(
         return double.Parse(line.Split([' '], StringSplitOptions.RemoveEmptyEntries)[1]);
     }
 
-    private double GetMacMemoryInfo()
+    /// <summary>
+    /// 返回 macOS 物理内存总量与可用内存（MB）。
+    /// 可用内存约等于 free + inactive + speculative + purgeable 页。
+    /// </summary>
+    private static (double TotalMb, double AvailableMb) GetMacMemoryInfo()
     {
         try
         {
-            var output = ExecuteCommand("sysctl", "hw.memsize");
-            var memSize = long.Parse(output.Split(':')[1].Trim());
-            return memSize / 1024.0 / 1024.0; // 转换为 MB
+            var memSizeOutput = ExecuteCommand("sysctl", "-n hw.memsize").Trim();
+            var totalBytes = long.Parse(memSizeOutput);
+            var totalMb = totalBytes / 1024.0 / 1024.0;
+
+            var pageSizeOutput = ExecuteCommand("sysctl", "-n hw.pagesize").Trim();
+            var pageSize = long.Parse(pageSizeOutput);
+
+            var vmStat = ExecuteCommand("vm_stat", "");
+            long free = 0, inactive = 0, speculative = 0, purgeable = 0;
+            foreach (var rawLine in vmStat.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+            {
+                var line = rawLine.Trim();
+                if (line.StartsWith("Pages free:", StringComparison.Ordinal))
+                    free = ParseMacVmStatPages(line);
+                else if (line.StartsWith("Pages inactive:", StringComparison.Ordinal))
+                    inactive = ParseMacVmStatPages(line);
+                else if (line.StartsWith("Pages speculative:", StringComparison.Ordinal))
+                    speculative = ParseMacVmStatPages(line);
+                else if (line.StartsWith("Pages purgeable:", StringComparison.Ordinal))
+                    purgeable = ParseMacVmStatPages(line);
+            }
+
+            var availableBytes = (free + inactive + speculative + purgeable) * pageSize;
+            var availableMb = Math.Min(availableBytes / 1024.0 / 1024.0, totalMb);
+            return (totalMb, availableMb);
         }
         catch
         {
-            return 0;
+            return (0, 0);
         }
     }
+
+    private static long ParseMacVmStatPages(string line)
+    {
+        // 例: "Pages free:                               41966."
+        var valuePart = line.Split(':', 2)[1].Trim().TrimEnd('.');
+        return long.Parse(valuePart);
+    }
+
+    private static bool TryGetMacCpuLoad(out (ulong User, ulong System, ulong Idle, ulong Nice) load)
+    {
+        load = default;
+        if (!OperatingSystem.IsMacOS())
+        {
+            return false;
+        }
+
+        // host_cpu_load_info.cpu_ticks: USER, SYSTEM, IDLE, NICE
+        var ticks = new uint[4];
+        var count = 4;
+        var result = host_statistics(mach_host_self(), HostCpuLoadInfo, ticks, ref count);
+        if (result != 0 || count < 4)
+        {
+            return false;
+        }
+
+        load = (ticks[0], ticks[1], ticks[2], ticks[3]);
+        return true;
+    }
+
+    private const int HostCpuLoadInfo = 3;
+
+    [DllImport("libSystem.dylib")]
+    private static extern IntPtr mach_host_self();
+
+    [DllImport("libSystem.dylib")]
+    private static extern int host_statistics(IntPtr host, int flavor, uint[] hostInfo, ref int hostInfoCount);
 
     private static string ExecuteCommand(string command, string arguments)
     {
@@ -323,12 +427,15 @@ public class DicomController(
                 FileName = command,
                 Arguments = arguments,
                 RedirectStandardOutput = true,
+                RedirectStandardError = true,
                 UseShellExecute = false,
                 CreateNoWindow = true
             }
         };
         process.Start();
-        return process.StandardOutput.ReadToEnd();
+        var output = process.StandardOutput.ReadToEnd();
+        process.WaitForExit(3000);
+        return output;
     }
 
     [HttpPost("start")]

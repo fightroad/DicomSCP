@@ -30,11 +30,8 @@ if (Environment.UserInteractive)
                 ConsoleHelper.SetConsoleMode(handle, mode);
             }
         }
-        else
-        {
-            // Unix/Linux/MacOS 平台设置
-            Console.TreatControlCAsInput = true;
-        }
+        // macOS/Linux 保持默认：Ctrl+C 触发进程退出，不要当成普通输入
+
     }
     catch
     {
