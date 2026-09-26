@@ -8,23 +8,43 @@
   <a href="https://gitee.com/fightroad/DicomSCP"><img src="https://img.shields.io/badge/Gitee-Main%20Repo-C71D23" alt="Gitee Main Repo" /></a>
   <a href="https://github.com/fightroad/DicomSCP"><img src="https://img.shields.io/github/stars/fightroad/DicomSCP?label=GitHub%20Stars&logo=github&color=181717" alt="GitHub Stars" /></a>
   <a href="https://github.com/fightroad/DicomSCP"><img src="https://img.shields.io/badge/GitHub-Mirror-181717?logo=github" alt="GitHub Mirror" /></a>
-<a href="https://gitee.com/fightroad/DicomSCP"><img src="https://visit.cloudpacs.top/badge?project=gitee-fightroad-DicomSCP" alt="Visitors" />
-</a>
+  <a href="https://gitee.com/fightroad/DicomSCP"><img src="https://visit.cloudpacs.top/badge?project=gitee-fightroad-DicomSCP" alt="Visitors" /></a>
 </p>
 
-**快速入口**：[`快速开始`](#快速开始) | [`Docker部署`](#docker部署) | [`配置说明`](#配置说明) | [`商业咨询（微信/QQ：30760655）`](#commercial-consult)
+**快速入口**：[`快速开始`](#快速开始) | [`Docker部署`](#docker部署) | [`功能特性`](#功能特性) | [`配置说明`](#配置说明) | [`常见问题`](#faq) | [`联系我们`](#contact-us)
 
 > 关键词：开源 DICOM SCP、轻量级 PACS、WADO-URI、Worklist、Query/Retrieve、医学影像系统集成。
 
 - DicomSCP 是一个基于 .NET Core 的 DICOM 医学影像基础服务组件，提供轻量级 PACS 核心能力，可用于 DICOM 接入、影像存储、查询检索与系统集成。
 - 本项目由多年医学影像从业经验积累而来，旨在为中文医学影像生态提供一个轻量、开放、可扩展的 DICOM/PACS 基础设施实现。不限制使用，请遵守[MIT许可协议](LICENSE)。如果项目对您有帮助，欢迎[赞助](#赞助项目)支持我们继续改进！
-- 提供完整商业版云RIS/PACS（区域云影像）和云胶片（数字胶片）解决方案助力紧密型医共体和医保影像云，亦可提供医疗信息化相关的定制开发和接口改造服务，有相关需求可以联系咨询！ 微信/QQ：30760655
-- 很多用户咨询想要一套集成轻量报告功能的PACS系统，现推出了定位轻量应用场景的全流程MiniPACS系统满足不同需求。|[MiniPACS](https://www.cloudpacs.top/archives/minipacs%E5%BD%B1%E5%83%8F%E7%AE%A1%E7%90%86%E4%B8%8E%E6%8A%A5%E5%91%8A%E7%B3%BB%E7%BB%9F)|
+- 提供完整商业版云RIS/PACS（区域云影像）和云胶片（数字胶片）解决方案助力紧密型医共体和医保影像云，亦可提供医疗信息化相关的定制开发和接口改造服务，有相关需求可以联系咨询！
+- 很多用户咨询想要一套集成轻量报告功能的PACS系统，现推出了定位轻量应用场景的全流程MiniPACS系统满足不同需求。[MiniPACS](https://www.cloudpacs.top/archives/minipacs%E5%BD%B1%E5%83%8F%E7%AE%A1%E7%90%86%E4%B8%8E%E6%8A%A5%E5%91%8A%E7%B3%BB%E7%BB%9F)
 - 相关商业版配套子系统：[CloudRIS](https://www.cloudpacs.top/archives/cloudris-yun-ying-xiang-xin-xi-xi-tong) | [CloudFilm](https://www.cloudpacs.top/archives/dian-zi-yun-jiao-pian-xi-tong) | [DicomServer](https://www.cloudpacs.top/archives/2025-10-27-10-48-15) | [DCMViewer](https://www.cloudpacs.top/archives/dcmviewer%E5%8C%BB%E5%AD%A6%E5%BD%B1%E5%83%8F%E6%B5%8F%E8%A7%88%E5%99%A8) | [Acquisition-Engine](https://www.cloudpacs.top/archives/rispacsdicom%E5%BD%B1%E5%83%8F%E9%87%87%E9%9B%86%E7%B3%BB%E7%BB%9F) | [Integration-Engine](https://www.cloudpacs.top/archives/ji-yu-shu-ju-ku-de-webapi-ji-cheng-fa-bu-fu-wu)
 - 测试工具（用于联调与传输测试）：[pacs-explorer](https://gitee.com/fightroad/pacs-explorer) | [mini-scu](https://gitee.com/fightroad/mini-scu) | [DicomTransfer](https://gitee.com/fightroad/DicomTransfer) | [DicomStoreScp](https://gitee.com/fightroad/DicomStoreScp) | [DicomProxy_Viewer](https://gitee.com/fightroad/DicomProxy_Viewer)
 - [项目Gitee仓库](https://gitee.com/fightroad/DicomSCP)  |  [项目GitHub仓库](https://github.com/fightroad/DicomSCP)
 
-<a id="commercial-consult"></a>
+<a id="contact-us"></a>
+## 联系我们
+
+如需云 RIS/PACS、云胶片、MiniPACS、定制开发或医院系统集成，欢迎通过以下方式联系：
+
+> 添加好友时请备注来意（如：DicomSCP 咨询 / 商业合作），方便及时通过。
+
+<table>
+  <tr>
+    <td align="center">
+      <img src="about/微信联系.png" alt="微信联系二维码" width="200"/>
+      <br/>
+      微信联系
+    </td>
+    <td align="center">
+      <img src="about/QQ联系.png" alt="QQ联系二维码" width="200"/>
+      <br/>
+      QQ联系
+    </td>
+  </tr>
+</table>
+
 ## 🔗 开源 vs 商业版本
 
 | 维度 | DicomSCP（开源） | 商业解决方案 |
@@ -38,40 +58,11 @@
 | 维护模式 | 社区维护（开源） | 项目制交付 + 定制支持 |
 | 扩展能力 | 提供基础接口与协议实现 | 支持医院系统对接（HIS / EMR / AI影像平台） |
 
-
 ## 商业解决方案部分预览
 ![商业ris](about/商业报告.png)
 ![Risreport](about/risreport.png)
 ![DicomServer](about/DicomServer.png)
 ![viewer](about/report.png) ![viewer](about/mobileviewer.png)
-
-
-## 赞助项目
-
-如果这个项目对您有帮助，欢迎赞助支持我们继续改进！
-
-<table>
-  <tr>
-    <td align="center">
-      <img src="about/wechat.png" alt="微信赞助" width="200"/>
-      <br/>
-      微信赞助
-    </td>
-    <td align="center">
-      <img src="about/alipay.png" alt="支付宝赞助" width="200"/>
-      <br/>
-      支付宝赞助
-    </td>
-  </tr>
-</table>
-
-您的每一份支持都将帮助我们:
-- 🚀 开发新功能
-- 🐛 修复已知问题
-- 📚 完善项目文档
-- 🎨 优化用户体验
-
-赞助时请备注您的信息，我们会将您添加到[赞助者名单](#赞助者)中。
 
 ## 开源版功能预览
 
@@ -102,39 +93,13 @@
 - **打印服务 (Print SCP)**
   - 打印任务队列管理
   - 打印任务状态跟踪
+  - 支持灰度 / 彩色打印
   - 归档打印的原始文件和标签
 
 - **WADOURI 服务 (Web Access to DICOM Objects)**
-  - 必需参数
-    - `requestType`: 必须为 "WADO"
-    - `studyUID`: 研究实例 UID
-    - `seriesUID`: 序列实例 UID
-    - `objectUID`: 实例 UID
-
-  - 可选参数
-    - `contentType`: 返回内容类型 不传默认 image/jpeg
-      - `application/dicom`: 返回 DICOM 格式
-      - `image/jpeg`: 返回 JPEG 格式
-    
-    - `transferSyntax`: DICOM 传输语法 UID 不传默认不转码
-      - `1.2.840.10008.1.2`: Implicit VR Little Endian
-      - `1.2.840.10008.1.2.1`: Explicit VR Little Endian
-      - `1.2.840.10008.1.2.4.50`: JPEG Baseline
-      - `1.2.840.10008.1.2.4.57`: JPEG Lossless
-      - `1.2.840.10008.1.2.4.70`: JPEG Lossless SV1
-      - `1.2.840.10008.1.2.4.90`: JPEG 2000 Lossless
-      - `1.2.840.10008.1.2.4.91`: JPEG 2000 Lossy
-      - `1.2.840.10008.1.2.4.80`: JPEG-LS Lossless
-      - `1.2.840.10008.1.2.5`: RLE Lossless
-
-    - `anonymize`: 是否匿名化
-      - `yes`: 执行匿名化处理
-      - 其他值或不传: 不进行匿名化
-
-  - 完整请求参数例子
-    ```
-    http://localhost:5000/wado?requestType=WADO&studyUID=1.2.840.113704.1.111.5096.1719875982.1&seriesUID=1.3.46.670589.33.1.13252761201319485513.2557156297609063016&objectUID=1.3.46.670589.33.1.39304787935332940.2231985654917411587&contentType=application/dicom&transferSyntax=1.2.840.10008.1.2.4.70&anonymize=yes
-    ```
+  - 按 Study / Series / Object UID 获取 DICOM 或 JPEG
+  - 支持传输语法转码与可选匿名化
+  - 请求参数与示例见下方 [WADO 请求示例](#wado-example)
 
 - **CSTORE-SCU (CSTORE-SCU)**
   - 支持发送DICOM图像到DICOM SCP
@@ -146,14 +111,31 @@
 
 - **Log Service (日志服务)**
   - 支持查看、删除日志
-  - 个服务日志独立配置
+  - 各服务日志独立配置
   - 多日志级别配置
   - 服务预置详细日志 方便对接查找问题
 
+<a id="wado-example"></a>
+### WADO 请求示例
+
+| 参数 | 必填 | 说明 |
+|------|------|------|
+| `requestType` | 是 | 固定为 `WADO` |
+| `studyUID` / `seriesUID` / `objectUID` | 是 | 检查 / 序列 / 实例 UID |
+| `contentType` | 否 | 默认 `image/jpeg`；亦可 `application/dicom` |
+| `transferSyntax` | 否 | DICOM 传输语法 UID，不传则不转码 |
+| `anonymize` | 否 | `yes` 时匿名化 |
+
+常用 `transferSyntax`：`1.2.840.10008.1.2`（Implicit LE）、`1.2.840.10008.1.2.1`（Explicit LE）、`1.2.840.10008.1.2.4.50`（JPEG Baseline）、`1.2.840.10008.1.2.4.70`（JPEG Lossless SV1）、`1.2.840.10008.1.2.4.90`（JPEG 2000 Lossless）、`1.2.840.10008.1.2.4.80`（JPEG-LS）、`1.2.840.10008.1.2.5`（RLE）。
+
+```
+http://localhost:5000/wado?requestType=WADO&studyUID={StudyUID}&seriesUID={SeriesUID}&objectUID={SOPInstanceUID}&contentType=application/dicom&transferSyntax=1.2.840.10008.1.2.4.70&anonymize=yes
+```
+
 ## 系统要求
 
-- Windows 10/11 或 Windows Server 2012+
-- .NET 8.0 或更高版本
+- Windows 10/11 或 Windows Server 2012+（亦可使用 Docker 部署于 Linux）
+- .NET 8.0 或更高版本（Docker 镜像已内置运行时）
 - SQLite 3.x
 - 8GB+ RAM
 - 100GB+ 可用磁盘空间
@@ -243,6 +225,7 @@ docker run -d --name DicomSCP --restart unless-stopped \
 
 ```
 
+<a id="faq"></a>
 ## 常见问题（FAQ）
 
 ### 点击 Weasis 没反应？
@@ -264,16 +247,31 @@ C-MOVE 会把影像推到**目标存储节点**（接收端）。若配置或类
 
 ## Nginx反向代理
 
-```
-proxy_pass http://127.0.0.1:5000;
-proxy_set_header Host $host:$server_port;
-proxy_set_header X-Forwarded-Proto $scheme;
-proxy_set_header X-Real-IP $remote_addr;
-proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-proxy_set_header REMOTE-HOST $remote_addr;
-proxy_set_header Upgrade $http_upgrade;
-proxy_set_header Connection "Upgrade";
-proxy_http_version 1.1;
+HTTPS 反代示例（按需替换证书路径与域名）：
+
+```nginx
+server {
+    listen 443 ssl;
+    server_name pacs.example.com;
+
+    ssl_certificate     /etc/nginx/certs/fullchain.pem;
+    ssl_certificate_key /etc/nginx/certs/privkey.pem;
+
+    client_max_body_size 512m;
+
+    location / {
+        proxy_pass http://127.0.0.1:5000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host:$server_port;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header REMOTE-HOST $remote_addr;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "Upgrade";
+        proxy_read_timeout 3600s;
+    }
+}
 ```
 
 
@@ -287,6 +285,33 @@ proxy_http_version 1.1;
 - [Bootstrap](https://github.com/twbs/bootstrap)
 
 感谢这些优秀的开源项目，让本项目得以实现！
+
+## 赞助项目
+
+如果这个项目对您有帮助，欢迎赞助支持我们继续改进！
+
+<table>
+  <tr>
+    <td align="center">
+      <img src="about/wechat.png" alt="微信赞助" width="200"/>
+      <br/>
+      微信赞助
+    </td>
+    <td align="center">
+      <img src="about/alipay.png" alt="支付宝赞助" width="200"/>
+      <br/>
+      支付宝赞助
+    </td>
+  </tr>
+</table>
+
+您的每一份支持都将帮助我们:
+- 🚀 开发新功能
+- 🐛 修复已知问题
+- 📚 完善项目文档
+- 🎨 优化用户体验
+
+赞助时请备注您的信息，我们会将您添加到[赞助者名单](#赞助者)中。
 
 ## 赞助者
 
