@@ -80,4 +80,5 @@ public class PrintRequest
     public string BorderDensity { get; set; } = string.Empty;
     public string EmptyImageDensity { get; set; } = string.Empty;
     public string Trim { get; set; } = string.Empty;
+    public bool PrintInColor { get; set; }
 } 

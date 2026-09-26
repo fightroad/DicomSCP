@@ -89,24 +89,17 @@ namespace DicomSCP.Controllers
 
                     // 返回JPEG
                     var dicomImage = new DicomImage(dicomFile.Dataset);
-                    var renderedImage = dicomImage.RenderImage();
-                    
-                    // 转换为JPEG
+                    using var rendered = dicomImage.RenderImage();
+                    var image = rendered.AsSharpImage();
+
                     byte[] jpegBytes;
                     using (var memoryStream = new MemoryStream())
                     {
-                        using var image = Image.LoadPixelData<Rgba32>(
-                            renderedImage.AsBytes(), 
-                            renderedImage.Width, 
-                            renderedImage.Height);
-                            
-                        // 配置JPEG编码器选项
                         var encoder = new JpegEncoder
                         {
-                            Quality = 90  // 设置JPEG质量
+                            Quality = 90
                         };
 
-                        // 保存为JPEG
                         await image.SaveAsJpegAsync(memoryStream, encoder);
                         jpegBytes = memoryStream.ToArray();
                     }

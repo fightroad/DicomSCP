@@ -112,7 +112,8 @@ if (swaggerSettings.Enabled)
 // DICOM服务注册
 builder.Services
     .AddFellowOakDicom()
-    .AddTranscoderManager<NativeTranscoderManager>();
+    .AddTranscoderManager<NativeTranscoderManager>()
+    .AddImageManager<FellowOakDicom.Imaging.ImageSharpImageManager>();
 
 builder.Services.AddSingleton<DicomRepository>();
 builder.Services.AddSingleton<StudyBasicInfoRepository>();
@@ -340,8 +341,6 @@ app.Lifetime.ApplicationStarted.Register(() =>
         // 忽略获取IP地址的错误
     }
     
-    Console.WriteLine("═══════════════════════════════════════════════════════════");
-    Console.WriteLine("   DICOM SCP 服务器启动成功！");
     Console.WriteLine("═══════════════════════════════════════════════════════════");
     Console.WriteLine($"   监听地址: {httpUrl}");
     

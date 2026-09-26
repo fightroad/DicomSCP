@@ -203,50 +203,37 @@ public class PrintController(
 
     private async Task<IActionResult> ConvertDicomToImageAsync(string dicomFilePath, int? width = null, int? height = null)
     {
-        // 读取DICOM文件
         var dicomFile = await DicomFile.OpenAsync(dicomFilePath);
         var dicomImage = new DicomImage(dicomFile.Dataset);
-        
-        // 获取原始图像数据
-        var image = dicomImage.RenderImage();
-        
-        // 计算目标尺寸
+
+        using var rendered = dicomImage.RenderImage();
+        var outputImage = rendered.AsSharpImage();
+
         var (targetWidth, targetHeight) = CalculateTargetSize(
-            originalWidth: image.Width,
-            originalHeight: image.Height,
+            originalWidth: outputImage.Width,
+            originalHeight: outputImage.Height,
             requestedWidth: width,
             requestedHeight: height);
 
-        using var memoryStream = new MemoryStream();
-        using (var outputImage = Image.LoadPixelData<Rgba32>(
-            image.AsBytes(), 
-            image.Width, 
-            image.Height))
+        if (targetWidth != outputImage.Width || targetHeight != outputImage.Height)
         {
-            // 调整图像大小
-            if (targetWidth != image.Width || targetHeight != image.Height)
+            outputImage.Mutate(x => x.Resize(new ResizeOptions
             {
-                outputImage.Mutate(x => x.Resize(new ResizeOptions
-                {
-                    Size = new Size(targetWidth, targetHeight),
-                    Mode = ResizeMode.Max,  // 保持宽高比
-                    Sampler = KnownResamplers.Lanczos3  // 使用Lanczos算法提供更好的质量
-                }));
-            }
-
-            // 配置PNG编码器选项，优化输出大小
-            var encoder = new PngEncoder
-            {
-                CompressionLevel = PngCompressionLevel.BestSpeed,  // 使用最快的压缩方式
-                FilterMethod = PngFilterMethod.None,  // 不使用过滤，提高性能
-                ColorType = PngColorType.Rgb  // 使用RGB格式，不包含Alpha通道
-            };
-
-            // 保存为PNG
-            await outputImage.SaveAsPngAsync(memoryStream, encoder);
+                Size = new Size(targetWidth, targetHeight),
+                Mode = ResizeMode.Max,
+                Sampler = KnownResamplers.Lanczos3
+            }));
         }
 
-        memoryStream.Position = 0;
+        using var memoryStream = new MemoryStream();
+        var encoder = new PngEncoder
+        {
+            CompressionLevel = PngCompressionLevel.BestSpeed,
+            FilterMethod = PngFilterMethod.None,
+            ColorType = PngColorType.Rgb
+        };
+
+        await outputImage.SaveAsPngAsync(memoryStream, encoder);
         return new FileContentResult(memoryStream.ToArray(), "image/png");
     }
 

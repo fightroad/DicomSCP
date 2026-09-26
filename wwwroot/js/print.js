@@ -195,7 +195,7 @@ class PrintManager {
     static StatusText = {
         'Created': '已创建',
         'ImageReceived': '已接收',
-        'Completed': '已完成',
+        'Completed': '已打印',
         'Failed': '失败'
     };
 
@@ -294,8 +294,8 @@ class PrintManager {
                     `<span class="badge bg-secondary me-2">已创建: ${stats['Created']}</span>` : ''}
                 ${stats['ImageReceived'] ? 
                     `<span class="badge bg-info me-2">已接收: ${stats['ImageReceived']}</span>` : ''}
-                ${stats['Completed'] ? 
-                    `<span class="badge bg-success me-2">已完成: ${stats['Completed']}</span>` : ''}
+                ${stats['Completed'] ?
+                    `<span class="badge bg-success me-2">已打印: ${stats['Completed']}</span>` : ''}
                 ${stats['Failed'] ? 
                     `<span class="badge bg-danger me-2">失败: ${stats['Failed']}</span>` : ''}
             `;

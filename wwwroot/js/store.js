@@ -256,7 +256,7 @@ function updateUI() {
     const totalFiles = selectedFiles.size;
 
     if (totalFiles > 0) {
-        selectedFilesDiv.style.display = 'block';
+        selectedFilesDiv.style.display = 'flex';
         
         // 统计文件状态
         const stats = Array.from(selectedFiles.values()).reduce((acc, info) => {
@@ -265,24 +265,16 @@ function updateUI() {
         }, {});
 
         // 更新状态显示
-        const statusInfo = document.createElement('div');
-        statusInfo.className = 'mb-2';
-        statusInfo.innerHTML = `
-            总计: ${totalFiles} 个文件
-            ${stats.pending ? `<span class="badge bg-secondary ms-2">待发送: ${stats.pending}</span>` : ''}
-            ${stats.sending ? `<span class="badge bg-primary ms-2">发送中: ${stats.sending}</span>` : ''}
-            ${stats.success ? `<span class="badge bg-success ms-2">已完成: ${stats.success}</span>` : ''}
-            ${stats.error ? `<span class="badge bg-danger ms-2">失败: ${stats.error}</span>` : ''}
-        `;
-        
-        // 替换或添加状态信息
-        const existingStatus = selectedFilesDiv.querySelector('.status-info');
-        if (existingStatus) {
-            existingStatus.replaceWith(statusInfo);
-        } else {
-            selectedFilesDiv.insertBefore(statusInfo, selectedFilesDiv.firstChild);
+        const statusInfo = selectedFilesDiv.querySelector('.status-info');
+        if (statusInfo) {
+            statusInfo.innerHTML = `
+                总计: ${totalFiles} 个文件
+                ${stats.pending ? `<span class="badge bg-secondary ms-2">待发送: ${stats.pending}</span>` : ''}
+                ${stats.sending ? `<span class="badge bg-primary ms-2">发送中: ${stats.sending}</span>` : ''}
+                ${stats.success ? `<span class="badge bg-success ms-2">已完成: ${stats.success}</span>` : ''}
+                ${stats.error ? `<span class="badge bg-danger ms-2">失败: ${stats.error}</span>` : ''}
+            `;
         }
-        statusInfo.classList.add('status-info');
 
         // 只有当有待发送或失败的文件时才启用发送按钮
         const hasPendingFiles = stats.pending > 0 || stats.error > 0;

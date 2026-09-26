@@ -182,11 +182,13 @@ public class WorklistSCP : DicomService, IDicomServiceProvider, IDicomCFindProvi
         var responses = new List<DicomCFindResponse>();
         var hasErrors = false;
 
+        var requestingAE = Association?.CallingAE ?? string.Empty;
+
         foreach (var item in worklistItems)
         {
             try
             {
-                var response = CreateWorklistResponse(request, item);
+                var response = CreateWorklistResponse(request, item, requestingAE);
                 responses.Add(response);
             }
             catch (Exception ex)
@@ -208,7 +210,7 @@ public class WorklistSCP : DicomService, IDicomServiceProvider, IDicomCFindProvi
         return responses;
     }
 
-    private static DicomCFindResponse CreateWorklistResponse(DicomCFindRequest request, WorklistItem item)
+    private static DicomCFindResponse CreateWorklistResponse(DicomCFindRequest request, WorklistItem item, string requestingAE)
     {
         if (item == null)
         {
@@ -379,7 +381,11 @@ public class WorklistSCP : DicomService, IDicomServiceProvider, IDicomCFindProvi
 
             var scheduledStep = new DicomDataset
             {
-                { DicomTag.ScheduledStationAETitle, ProcessDicomValue(item.ScheduledAET, DicomTag.ScheduledStationAETitle, needConvertName) },
+                // 返回设备请求时的 Calling AE，未提供时回退到登记的 ScheduledAET
+                { DicomTag.ScheduledStationAETitle, ProcessDicomValue(
+                    !string.IsNullOrEmpty(requestingAE) ? requestingAE : (item.ScheduledAET ?? string.Empty),
+                    DicomTag.ScheduledStationAETitle,
+                    needConvertName) },
                 { DicomTag.ScheduledProcedureStepStartDate, spsStartDate },
                 { DicomTag.ScheduledProcedureStepStartTime, spsStartTime },
                 { DicomTag.Modality, ProcessDicomValue(item.Modality, DicomTag.Modality, needConvertName) },
@@ -504,9 +510,9 @@ public class WorklistSCP : DicomService, IDicomServiceProvider, IDicomCFindProvi
         }
         else
         {
-            // 没有传日期参数，使用过去30天到未来30天的范围
-            startDate = DateTime.Now.AddDays(-30).ToString("yyyyMMdd");
-            endDate = DateTime.Now.AddDays(30).ToString("yyyyMMdd");
+            // 没有传日期参数，使用过去3天到未来3天的范围
+            startDate = DateTime.Now.AddDays(-3).ToString("yyyyMMdd");
+            endDate = DateTime.Now.AddDays(3).ToString("yyyyMMdd");
             DicomLogger.Debug("WorklistSCP", "日期处理: 未传日期, 使用默认范围: {StartDate} - {EndDate}", 
                 startDate, endDate);
         }

@@ -237,8 +237,6 @@ public class WorklistController(WorklistRepository repository) : ControllerBase
                 return BadRequest("检查类型不能为空");
             if (string.IsNullOrEmpty(item.ScheduledDateTime))
                 return BadRequest("预约时间不能为空");
-            if (string.IsNullOrEmpty(item.ScheduledAET))
-                return BadRequest("预约AE Title不能为空");
 
             // 验证状态值
             var validStatuses = new[] { "SCHEDULED", "IN_PROGRESS", "COMPLETED", "DISCONTINUED" };

@@ -125,7 +125,7 @@
         </div>
     </nav>
 
-    <div class="container mt-4">
+    <div class="container mt-2 main-container">
         <div id="content-area">
             <!-- Worklist管理页面 -->
             <div id="worklist-page">
@@ -370,23 +370,23 @@
                 <div class="card mb-3">
                     <div class="card-body p-3">
                         <form id="qrSearchForm" class="row g-3">
-                            <div class="col-auto me-4" style="width: 250px;">
+                            <div class="col-auto me-4" style="width: 300px;">
                                 <label class="form-label">PACS节点</label>
-                                <select class="form-select" id="qrNode" style="width: 250px;">
+                                <select class="form-select" id="qrNode" style="width: 300px;">
                                     <!-- 节点列表将通过JavaScript动态加载 -->
                                 </select>
                             </div>
-                            <div class="col-auto me-4" style="width: 180px;">
+                            <div class="col-auto me-4" style="width: 160px;">
                                 <label class="form-label">病人ID</label>
-                                <input type="text" class="form-control" id="qrPatientId" style="width: 180px;">
+                                <input type="text" class="form-control" id="qrPatientId" style="width: 160px;">
                             </div>
-                            <div class="col-auto me-4" style="width: 180px;">
+                            <div class="col-auto me-4" style="width: 160px;">
                                 <label class="form-label">姓名</label>
-                                <input type="text" class="form-control" id="qrPatientName" style="width: 180px;">
+                                <input type="text" class="form-control" id="qrPatientName" style="width: 160px;">
                             </div>
-                            <div class="col-auto me-4" style="width: 180px;">
+                            <div class="col-auto me-4" style="width: 160px;">
                                 <label class="form-label">检查号</label>
-                                <input type="text" class="form-control" id="qrAccessionNumber" style="width: 180px;">
+                                <input type="text" class="form-control" id="qrAccessionNumber" style="width: 160px;">
                             </div>
                             <div class="col-auto me-4" style="width: 160px;">
                                 <label class="form-label">检查类型</label>
@@ -408,9 +408,9 @@
                                     <option value="ECG">ECG</option>
                                 </select>
                             </div>
-                            <div class="col-auto me-4" style="width: 180px;">
+                            <div class="col-auto me-4" style="width: 160px;">
                                 <label class="form-label">检查日期</label>
-                                <input type="date" class="form-control" id="qrStudyDate" style="width: 180px;">
+                                <input type="date" class="form-control" id="qrStudyDate" style="width: 160px;">
                             </div>
                             <div class="col-auto d-flex align-items-end">
                                 <button type="button" class="btn btn-primary me-2" onclick="searchQR()">
@@ -487,9 +487,8 @@
                                 </button>
                             </div>
                         </div>
-                        <div class="form-group">
+                        <div class="form-group config-editor-wrap">
                             <textarea id="configEditor" class="form-control" 
-                                style="height: 500px; font-family: Consolas, monospace; font-size: 14px;"
                                 spellcheck="false"></textarea>
                         </div>
                     </div>
@@ -510,26 +509,39 @@
                                 </select>
                             </div>
                             
-                            <div class="mb-3">
-                                <label class="form-label">选择文件或拖到此处</label>
-                                <div class="drop-zone border rounded p-4 text-center" id="dropZone">
-                                    <div class="mb-3">
+                            <div class="mb-2">
+                                <label class="form-label mb-1">选择文件或拖到此处</label>
+                                <div class="drop-zone border rounded p-2 text-center" id="dropZone">
+                                    <div class="mb-2">
                                         <i class="bi bi-cloud-upload"></i>
-                                        <p class="mb-0">拖拽文件/文件夹到这里，或点击选择</p>
+                                        <p class="mb-0 small">拖拽文件/文件夹到这里，或点击选择</p>
                                     </div>
-                                    <button type="button" class="btn btn-outline-primary me-2" id="fileInput">
+                                    <button type="button" class="btn btn-sm btn-outline-primary me-2" id="fileInput">
                                         <i class="bi bi-file-earmark-medical me-1"></i>DICOM文件
                                     </button>
-                                    <button type="button" class="btn btn-outline-primary" id="folderInput">
+                                    <button type="button" class="btn btn-sm btn-outline-primary" id="folderInput">
                                         <i class="bi bi-folder me-1"></i>选择文件夹
                                     </button>
                                 </div>
                             </div>
 
-                            <div id="selectedFiles" class="mb-3" style="display: none;">
-                                <h6>已选择的文件：</h6>
-                                <div class="table-responsive">
-                                    <table class="table table-sm">
+                            <div id="selectedFiles" class="mb-0" style="display: none;">
+                                <div class="d-flex justify-content-between align-items-center mb-2 store-file-header">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <h6 class="mb-0">已选择的文件</h6>
+                                        <div class="status-info small text-muted"></div>
+                                    </div>
+                                    <div class="store-actions">
+                                        <button type="button" class="btn btn-sm btn-primary me-1" id="sendButton" disabled>
+                                            <i class="bi bi-send me-1"></i>发送
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-secondary" id="clearButton">
+                                            <i class="bi bi-trash me-1"></i>清空
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="table-responsive store-file-table">
+                                    <table class="table table-sm mb-0">
                                         <thead>
                                             <tr>
                                                 <th>文件名</th>
@@ -543,15 +555,6 @@
                                     </table>
                                 </div>
                             </div>
-
-                                <div class="mb-3">
-                                    <button type="button" class="btn btn-primary" id="sendButton" disabled>
-                                        <i class="bi bi-send me-1"></i>发送文件
-                                    </button>
-                                    <button type="button" class="btn btn-secondary" id="clearButton">
-                                        <i class="bi bi-trash me-1"></i>清空列表
-                                    </button>
-                                </div>
                             </form>
                         </div>
                     </div>
@@ -613,7 +616,7 @@
                                         <option value="">全部状态</option>
                                         <option value="Created">已创建</option>
                                         <option value="ImageReceived">已接收</option>
-                                        <option value="Completed">已完成</option>
+                                        <option value="Completed">已打印</option>
                                         <option value="Failed">失败</option>
                                     </select>
                                 </div>
@@ -743,7 +746,7 @@
                             </div>
                             <div class="col-md-4 mb-3">
                                 <label class="form-label">设备AE Title</label>
-                                <input type="text" class="form-control" id="scheduledAET" required>
+                                <input type="text" class="form-control" id="scheduledAET" placeholder="可选，查询时用设备请求AE">
                             </div>
                             <div class="col-md-4 mb-3">
                                 <label class="form-label">设备名称</label>

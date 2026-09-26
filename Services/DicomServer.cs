@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Text;
 using FellowOakDicom.Network;
 using Microsoft.Extensions.Options;
@@ -81,7 +82,8 @@ public sealed class DicomServer(
     {
         try
         {
-            Console.WriteLine("═══════════════════════════════════════════════════════════");
+            PrintCopyrightBanner();
+
             // 配置存储服务
             CStoreSCP.Configure(_settings, _persistence);
 
@@ -181,6 +183,21 @@ public sealed class DicomServer(
             _printScp = null;
             throw;
         }
+    }
+
+    private static void PrintCopyrightBanner()
+    {
+        var asm = Assembly.GetExecutingAssembly();
+        var version = asm.GetName().Version?.ToString(3) ?? "unknown";
+        var product = asm.GetCustomAttribute<AssemblyProductAttribute>()?.Product ?? "DICOM SCP Server";
+        var company = asm.GetCustomAttribute<AssemblyCompanyAttribute>()?.Company ?? "平凡之路";
+        var copyright = $"Copyright © {DateTime.Now.Year} {company}  QQ: 30760655";
+
+        Console.WriteLine("═══════════════════════════════════════════════════════════");
+        Console.WriteLine($"   {product} v{version}");
+        Console.WriteLine($"   {copyright}");
+        Console.WriteLine("   项目地址: https://gitee.com/fightroad/DicomSCP");
+        Console.WriteLine("═══════════════════════════════════════════════════════════");
     }
 
     public async Task StopAsync()
