@@ -341,8 +341,6 @@ app.Lifetime.ApplicationStarted.Register(() =>
     }
     
     Console.WriteLine("═══════════════════════════════════════════════════════════");
-    Console.WriteLine("   DICOM SCP 服务器启动成功！");
-    Console.WriteLine("═══════════════════════════════════════════════════════════");
     Console.WriteLine($"   监听地址: {httpUrl}");
     
     if (!string.IsNullOrEmpty(localIp))
