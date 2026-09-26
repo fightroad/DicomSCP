@@ -23,6 +23,7 @@ public class PrintSCP : DicomService, IDicomServiceProvider, IDicomNServiceProvi
         public DicomFilmSession? FilmSession { get; set; }
         public DicomFilmBox? CurrentFilmBox { get; set; }
         public string? CallingAE { get; set; }
+        public bool IsColorPrint { get; set; }
         public DateTime CreatedTime { get; set; } = DateTime.Now;
         public Dictionary<int, DicomDataset> CachedImages { get; set; } = new Dictionary<int, DicomDataset>();
     }
@@ -130,6 +131,11 @@ public class PrintSCP : DicomService, IDicomServiceProvider, IDicomNServiceProvi
                 pc.AcceptTransferSyntaxes(AcceptedTransferSyntaxes);
                 hasValidPresentationContext = true;
             }
+
+            // Film Box 的 SOP Class 始终是 BasicFilmBox，彩色需看关联是否协商了彩色打印元 SOP
+            _session.IsColorPrint = association.PresentationContexts.Any(pc =>
+                pc.Result == DicomPresentationContextResult.Accept &&
+                pc.AbstractSyntax == DicomUID.BasicColorPrintManagementMeta);
 
             if (!hasValidPresentationContext)
             {
@@ -305,6 +311,7 @@ public class PrintSCP : DicomService, IDicomServiceProvider, IDicomNServiceProvi
                 filmBoxId: filmBoxId,
                 parameters: new Dictionary<string, object>
                 {
+                    ["PrintInColor"] = _session.IsColorPrint ? 1 : 0,
                     ["FilmOrientation"] = request.Dataset?.GetSingleValueOrDefault(DicomTag.FilmOrientation, "PORTRAIT") ?? "PORTRAIT",
                     ["FilmSizeID"] = request.Dataset?.GetSingleValueOrDefault(DicomTag.FilmSizeID, "8INX10IN") ?? "8INX10IN",
                     ["ImageDisplayFormat"] = request.Dataset?.GetSingleValueOrDefault(DicomTag.ImageDisplayFormat, "STANDARD\\1,1") ?? "STANDARD\\1,1",
@@ -354,8 +361,8 @@ public class PrintSCP : DicomService, IDicomServiceProvider, IDicomNServiceProvi
             var imageBoxSequence = new DicomSequence(DicomTag.ReferencedImageBoxSequence);
             var totalBoxes = columns * rows;
 
-            // 判断是否是彩色打印
-            var isColorPrint = request.SOPClassUID == DicomUID.BasicColorPrintManagementMeta;
+            // 判断是否是彩色打印（Film Box 的 SOP Class 始终是 BasicFilmBox，需看关联协商）
+            var isColorPrint = _session.IsColorPrint;
 
             for (int i = 1; i <= totalBoxes; i++)
             {
@@ -418,41 +425,56 @@ public class PrintSCP : DicomService, IDicomServiceProvider, IDicomNServiceProvi
             // 检查是否是图像盒请求
             if (request.SOPClassUID == DicomUID.BasicGrayscaleImageBox || request.SOPClassUID == DicomUID.BasicColorImageBox)
             {
+                if (request.SOPClassUID == DicomUID.BasicColorImageBox)
+                {
+                    _session.IsColorPrint = true;
+                }
+
                 // 根据SOP Class选择正确的序列标签
                 var sequenceTag = request.SOPClassUID == DicomUID.BasicColorImageBox
                     ? DicomTag.BasicColorImageSequence
                     : DicomTag.BasicGrayscaleImageSequence;
 
-                // 获取图像序列
-                var imageSequence = request.Dataset?.GetSequence(sequenceTag);
-                if (imageSequence == null)
+                DicomSequence? imageSequence = null;
+                if (request.Dataset != null)
                 {
-                    // 如果没有找到图像序列，尝试创建一个
-                    var imageDataset = new DicomDataset();
-                    if (request.Dataset != null)
+                    if (!request.Dataset.TryGetSequence(sequenceTag, out imageSequence))
                     {
-                        foreach (var item in request.Dataset)
+                        // 兼容错配：再试另一套序列
+                        var fallbackTag = sequenceTag == DicomTag.BasicColorImageSequence
+                            ? DicomTag.BasicGrayscaleImageSequence
+                            : DicomTag.BasicColorImageSequence;
+                        if (request.Dataset.TryGetSequence(fallbackTag, out imageSequence))
                         {
-                            if (item.Tag != sequenceTag)
+                            DicomLogger.Warning("PrintSCP",
+                                "Image Box 类型与图像序列不一致，已兼容使用 {Tag}",
+                                fallbackTag);
+                        }
+                        else if (request.Dataset.Contains(DicomTag.PixelData))
+                        {
+                            // 部分非标准客户端把像素放在顶层，包装成序列继续处理
+                            var imageDataset = new DicomDataset();
+                            foreach (var item in request.Dataset)
                             {
-                                imageDataset.Add(item);
+                                if (item.Tag != sequenceTag && item.Tag != fallbackTag)
+                                {
+                                    imageDataset.Add(item);
+                                }
                             }
+
+                            request.Dataset.AddOrUpdate(new DicomSequence(sequenceTag, imageDataset));
+                            request.Dataset.TryGetSequence(sequenceTag, out imageSequence);
+                            DicomLogger.Warning("PrintSCP", "未找到标准图像序列，已将顶层像素数据包装为 {Tag}", sequenceTag);
                         }
                     }
-
-                    // 创建图像序列
-                    var sequence = new DicomSequence(sequenceTag, imageDataset);
-                    if (request.Dataset != null)
-                    {
-                        request.Dataset.AddOrUpdate(sequence);
-                    }
-                    imageSequence = request.Dataset?.GetSequence(sequenceTag);
                 }
 
                 if (imageSequence == null || !imageSequence.Items.Any())
                 {
-                    DicomLogger.Warning("PrintSCP", "未找到图像序列或序列为空");
-                    return Task.FromResult(new DicomNSetResponse(request, DicomStatus.NoSuchObjectInstance));
+                    DicomLogger.Warning("PrintSCP",
+                        "未找到图像序列或序列为空 - 期望: {Tag}",
+                        sequenceTag);
+                    return Task.FromResult(new DicomNSetResponse(request, DicomStatus.MissingAttribute));
                 }
 
                 // 从SOPInstanceUID中获取图像位置
@@ -538,8 +560,8 @@ public class PrintSCP : DicomService, IDicomServiceProvider, IDicomNServiceProvi
 
             // 检查第一个图像是否为彩色
             var firstImage = _session.CachedImages.First().Value;
-            var photometricInterpretation = firstImage.GetSingleValue<string>(DicomTag.PhotometricInterpretation);
-            var samplesPerPixel = firstImage.GetSingleValue<ushort>(DicomTag.SamplesPerPixel);
+            var photometricInterpretation = firstImage.GetSingleValueOrDefault(DicomTag.PhotometricInterpretation, "MONOCHROME2");
+            var samplesPerPixel = firstImage.GetSingleValueOrDefault(DicomTag.SamplesPerPixel, (ushort)1);
             var isColor = samplesPerPixel == 3 && photometricInterpretation == "RGB";
 
             // 创建输出数据集
@@ -669,9 +691,9 @@ public class PrintSCP : DicomService, IDicomServiceProvider, IDicomNServiceProvi
         dataset.AddOrUpdate(DicomTag.Rows, (ushort)height);
         dataset.AddOrUpdate(DicomTag.Columns, (ushort)width);
         
-        // 获取图像类型
-        var photometricInterpretation = sourceImage.GetSingleValue<string>(DicomTag.PhotometricInterpretation);
-        var samplesPerPixel = sourceImage.GetSingleValue<ushort>(DicomTag.SamplesPerPixel);
+        // 获取图像类型（缺省按灰度处理，避免非标客户端缺 tag 导致失败）
+        var photometricInterpretation = sourceImage.GetSingleValueOrDefault(DicomTag.PhotometricInterpretation, "MONOCHROME2");
+        var samplesPerPixel = sourceImage.GetSingleValueOrDefault(DicomTag.SamplesPerPixel, (ushort)1);
         var isColor = samplesPerPixel == 3 && photometricInterpretation == "RGB";
 
         if (isColor)
@@ -687,13 +709,13 @@ public class PrintSCP : DicomService, IDicomServiceProvider, IDicomNServiceProvi
         }
         else
         {
-            // 保持原有灰度图像属性
-            dataset.AddOrUpdate(DicomTag.BitsAllocated, sourceImage.GetSingleValue<ushort>(DicomTag.BitsAllocated));
-            dataset.AddOrUpdate(DicomTag.BitsStored, sourceImage.GetSingleValue<ushort>(DicomTag.BitsStored));
-            dataset.AddOrUpdate(DicomTag.HighBit, sourceImage.GetSingleValue<ushort>(DicomTag.HighBit));
-            dataset.AddOrUpdate(DicomTag.PixelRepresentation, sourceImage.GetSingleValue<ushort>(DicomTag.PixelRepresentation));
-            dataset.AddOrUpdate(DicomTag.SamplesPerPixel, sourceImage.GetSingleValue<ushort>(DicomTag.SamplesPerPixel));
-            dataset.AddOrUpdate(DicomTag.PhotometricInterpretation, sourceImage.GetSingleValue<string>(DicomTag.PhotometricInterpretation));
+            // 保持原有灰度图像属性（缺 tag 时用常见 8 位灰度默认值）
+            dataset.AddOrUpdate(DicomTag.BitsAllocated, sourceImage.GetSingleValueOrDefault(DicomTag.BitsAllocated, (ushort)8));
+            dataset.AddOrUpdate(DicomTag.BitsStored, sourceImage.GetSingleValueOrDefault(DicomTag.BitsStored, (ushort)8));
+            dataset.AddOrUpdate(DicomTag.HighBit, sourceImage.GetSingleValueOrDefault(DicomTag.HighBit, (ushort)7));
+            dataset.AddOrUpdate(DicomTag.PixelRepresentation, sourceImage.GetSingleValueOrDefault(DicomTag.PixelRepresentation, (ushort)0));
+            dataset.AddOrUpdate(DicomTag.SamplesPerPixel, samplesPerPixel);
+            dataset.AddOrUpdate(DicomTag.PhotometricInterpretation, photometricInterpretation);
         }
         
         var studyUid = sourceImage.GetSingleValueOrDefault(DicomTag.StudyInstanceUID, _session.FilmSession?.SOPInstanceUID) 
@@ -719,8 +741,8 @@ public class PrintSCP : DicomService, IDicomServiceProvider, IDicomNServiceProvi
                 return;
             }
 
-            var photometricInterpretation = image.GetSingleValue<string>(DicomTag.PhotometricInterpretation);
-            var samplesPerPixel = image.GetSingleValue<ushort>(DicomTag.SamplesPerPixel);
+            var photometricInterpretation = image.GetSingleValueOrDefault(DicomTag.PhotometricInterpretation, "MONOCHROME2");
+            var samplesPerPixel = image.GetSingleValueOrDefault(DicomTag.SamplesPerPixel, (ushort)1);
             var isColor = samplesPerPixel == 3 && photometricInterpretation == "RGB";
 
             if (isColor)
@@ -742,9 +764,10 @@ public class PrintSCP : DicomService, IDicomServiceProvider, IDicomNServiceProvi
     private void ProcessColorImage(DicomDataset image, byte[] pixels, int xBase, int yBase, int maxWidth, int maxHeight, int filmWidth, bool isSingleImage)
     {
         var pixelData = image.GetValues<byte>(DicomTag.PixelData);
-        var srcWidth = image.GetSingleValue<ushort>(DicomTag.Columns);
-        var srcHeight = image.GetSingleValue<ushort>(DicomTag.Rows);
-        var planarConfiguration = image.GetSingleValue<ushort>(DicomTag.PlanarConfiguration);
+        var srcWidth = image.GetSingleValueOrDefault(DicomTag.Columns, (ushort)0);
+        var srcHeight = image.GetSingleValueOrDefault(DicomTag.Rows, (ushort)0);
+        // 缺省按 color-by-pixel (0) 处理
+        var planarConfiguration = image.GetSingleValueOrDefault(DicomTag.PlanarConfiguration, (ushort)0);
 
         if (srcWidth == 0 || srcHeight == 0 || pixelData == null || pixelData.Length == 0)
         {
@@ -810,8 +833,8 @@ public class PrintSCP : DicomService, IDicomServiceProvider, IDicomNServiceProvi
     private void ProcessGrayscaleImage(DicomDataset image, byte[] pixels, int xBase, int yBase, int maxWidth, int maxHeight, int filmWidth, bool isSingleImage)
     {
         var pixelData = image.GetValues<byte>(DicomTag.PixelData);
-        var srcWidth = image.GetSingleValue<ushort>(DicomTag.Columns);
-        var srcHeight = image.GetSingleValue<ushort>(DicomTag.Rows);
+        var srcWidth = image.GetSingleValueOrDefault(DicomTag.Columns, (ushort)0);
+        var srcHeight = image.GetSingleValueOrDefault(DicomTag.Rows, (ushort)0);
 
         if (srcWidth == 0 || srcHeight == 0 || pixelData == null || pixelData.Length == 0)
         {
@@ -929,6 +952,9 @@ public class PrintSCP : DicomService, IDicomServiceProvider, IDicomNServiceProvi
 
             if (_session.FilmSession?.SOPInstanceUID != null)
             {
+                var isColor = dataset.GetSingleValueOrDefault(DicomTag.SamplesPerPixel, (ushort)1) == 3
+                    && dataset.GetSingleValueOrDefault(DicomTag.PhotometricInterpretation, string.Empty) == "RGB";
+
                 await _repository.UpdatePrintJobAsync(
                     _session.FilmSession.SOPInstanceUID,
                     parameters: new Dictionary<string, object>
@@ -936,6 +962,7 @@ public class PrintSCP : DicomService, IDicomServiceProvider, IDicomNServiceProvi
                         ["ImagePath"] = relativePath,
                         ["Status"] = PrintJobStatus.ImageReceived.ToString(),
                         ["StudyInstanceUID"] = dataset.GetSingleValue<string>(DicomTag.StudyInstanceUID),
+                        ["PrintInColor"] = isColor || _session.IsColorPrint ? 1 : 0,
                         ["UpdateTime"] = DateTime.Now
                     });
             }

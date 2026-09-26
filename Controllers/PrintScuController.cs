@@ -211,7 +211,8 @@ public class PrintScuController(
                 SmoothingType = printJob.SmoothingType,
                 BorderDensity = printJob.BorderDensity,
                 EmptyImageDensity = printJob.EmptyImageDensity,
-                Trim = printJob.Trim
+                Trim = printJob.Trim,
+                PrintInColor = printJob.PrintInColor
             };
 
             // 执行打印

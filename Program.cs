@@ -112,7 +112,8 @@ if (swaggerSettings.Enabled)
 // DICOM服务注册
 builder.Services
     .AddFellowOakDicom()
-    .AddTranscoderManager<NativeTranscoderManager>();
+    .AddTranscoderManager<NativeTranscoderManager>()
+    .AddImageManager<FellowOakDicom.Imaging.ImageSharpImageManager>();
 
 builder.Services.AddSingleton<DicomRepository>();
 builder.Services.AddSingleton<StudyBasicInfoRepository>();

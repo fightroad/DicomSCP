@@ -5,7 +5,8 @@ using FellowOakDicom.Imaging;
 using DicomSCP.Configuration;
 using DicomSCP.Models;
 using Microsoft.Extensions.Options;
-using System.Numerics;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace DicomSCP.Services;
 
@@ -60,11 +61,31 @@ public class PrintSCU : IPrintSCU
         _aeTitle = _settings.PrintSCU?.AeTitle ?? "PRINTSCU";
     }
 
-    private IDicomClient CreateClient(string hostName, int port, string callingAE, string calledAE)
+    private IDicomClient CreateClient(
+        string hostName,
+        int port,
+        string callingAE,
+        string calledAE,
+        DicomPresentationContext? printMetaContext = null)
     {
         var client = DicomClientFactory.Create(hostName, port, false, callingAE, calledAE);
         client.NegotiateAsyncOps();
+        if (printMetaContext != null)
+        {
+            client.AdditionalPresentationContexts.Add(printMetaContext);
+        }
         return client;
+    }
+
+    private static DicomPresentationContext CreatePrintMetaPresentationContext(bool printInColor)
+    {
+        var metaUid = printInColor
+            ? DicomUID.BasicColorPrintManagementMeta
+            : DicomUID.BasicGrayscalePrintManagementMeta;
+        var pc = new DicomPresentationContext(1, metaUid);
+        pc.AddTransferSyntax(DicomTransferSyntax.ExplicitVRLittleEndian);
+        pc.AddTransferSyntax(DicomTransferSyntax.ImplicitVRLittleEndian);
+        return pc;
     }
 
     private bool ValidateAETitle(string aeTitle)
@@ -295,73 +316,105 @@ public class PrintSCU : IPrintSCU
         };
     }
 
-    private DicomDataset CreateImageBoxDataset(DicomFile file)
+    private DicomDataset CreateImageBoxDataset(DicomFile file, bool printInColor)
     {
-        // 创建图像数据集
-        var imageDataset = new DicomDataset
-        {
-            { DicomTag.Columns, (ushort)file.Dataset.GetSingleValue<int>(DicomTag.Columns) },
-            { DicomTag.Rows, (ushort)file.Dataset.GetSingleValue<int>(DicomTag.Rows) },
-            { DicomTag.BitsAllocated, (ushort)8 },
-            { DicomTag.BitsStored, (ushort)8 },
-            { DicomTag.HighBit, (ushort)7 },
-            { DicomTag.PixelRepresentation, (ushort)0 },
-            { DicomTag.SamplesPerPixel, (ushort)1 },
-            { DicomTag.PhotometricInterpretation, "MONOCHROME2" }
-        };
-
-        // 转换图像
         var dicomImage = new DicomImage(file.Dataset);
-        using var renderedImage = dicomImage.RenderImage();
-        if (renderedImage is not IImage imageData)
+        using var rendered = dicomImage.RenderImage();
+        var sharpImage = rendered.AsSharpImage();
+
+        DicomDataset imageDataset;
+        DicomTag sequenceTag;
+
+        if (printInColor)
         {
-            throw new DicomDataException("图像转换失败");
+            var pixelData = new byte[sharpImage.Width * sharpImage.Height * 3];
+            ExtractRgb(sharpImage, pixelData);
+            imageDataset = new DicomDataset
+            {
+                { DicomTag.Columns, (ushort)sharpImage.Width },
+                { DicomTag.Rows, (ushort)sharpImage.Height },
+                { DicomTag.BitsAllocated, (ushort)8 },
+                { DicomTag.BitsStored, (ushort)8 },
+                { DicomTag.HighBit, (ushort)7 },
+                { DicomTag.PixelRepresentation, (ushort)0 },
+                { DicomTag.SamplesPerPixel, (ushort)3 },
+                { DicomTag.PhotometricInterpretation, "RGB" },
+                { DicomTag.PlanarConfiguration, (ushort)0 },
+                { DicomTag.PixelData, pixelData }
+            };
+            sequenceTag = DicomTag.BasicColorImageSequence;
+        }
+        else
+        {
+            var pixelData = new byte[sharpImage.Width * sharpImage.Height];
+            ConvertToGrayscale(sharpImage, pixelData);
+            imageDataset = new DicomDataset
+            {
+                { DicomTag.Columns, (ushort)sharpImage.Width },
+                { DicomTag.Rows, (ushort)sharpImage.Height },
+                { DicomTag.BitsAllocated, (ushort)8 },
+                { DicomTag.BitsStored, (ushort)8 },
+                { DicomTag.HighBit, (ushort)7 },
+                { DicomTag.PixelRepresentation, (ushort)0 },
+                { DicomTag.SamplesPerPixel, (ushort)1 },
+                { DicomTag.PhotometricInterpretation, "MONOCHROME2" },
+                { DicomTag.PixelData, pixelData }
+            };
+            sequenceTag = DicomTag.BasicGrayscaleImageSequence;
         }
 
-        var pixelData = new byte[imageData.Width * imageData.Height];
-        ConvertToGrayscale(renderedImage, pixelData, imageData.Width, imageData.Height);
-        imageDataset.Add(DicomTag.PixelData, pixelData);
-
-        // 创建 Image Box 数据集
         return new DicomDataset
         {
             { DicomTag.ImageBoxPosition, (ushort)1 },
             { DicomTag.Polarity, "NORMAL" },
-            { DicomTag.BasicGrayscaleImageSequence, new DicomDataset[] { imageDataset } }
+            { sequenceTag, new DicomDataset[] { imageDataset } }
         };
     }
 
-    private static void ConvertToGrayscale(IImage renderedImage, byte[] pixelData, int width, int height)
+    private static void ConvertToGrayscale(Image<Bgra32> image, byte[] pixelData)
     {
-        var pixels = renderedImage.AsBytes();
-        if (pixels == null || pixels.Length < width * height * 4)
+        image.ProcessPixelRows(accessor =>
         {
-            throw new DicomDataException("图像数据获取失败");
-        }
-
-        // 使用 SIMD 优化的并行处理
-        var vectorSize = Vector<byte>.Count;
-        var vectorCount = pixels.Length / (4 * vectorSize);
-
-        Parallel.For(0, vectorCount, i =>
-        {
-            var offset = i * 4 * vectorSize;
-            for (var j = 0; j < vectorSize; j++)
+            for (var y = 0; y < accessor.Height; y++)
             {
-                var pixelOffset = offset + j * 4;
-                var r = pixels[pixelOffset];
-                var g = pixels[pixelOffset + 1];
-                var b = pixels[pixelOffset + 2];
-                pixelData[i * vectorSize + j] = (byte)((r * 38 + g * 75 + b * 15) >> 7);
+                var row = accessor.GetRowSpan(y);
+                var rowOffset = y * accessor.Width;
+                for (var x = 0; x < row.Length; x++)
+                {
+                    ref readonly var pixel = ref row[x];
+                    pixelData[rowOffset + x] = (byte)((pixel.R * 38 + pixel.G * 75 + pixel.B * 15) >> 7);
+                }
             }
         });
+    }
 
-        // 处理剩余的像素
-        for (var i = vectorCount * vectorSize; i < width * height; i++)
+    private static void ExtractRgb(Image<Bgra32> image, byte[] pixelData)
+    {
+        image.ProcessPixelRows(accessor =>
         {
-            var j = i * 4;
-            pixelData[i] = (byte)((pixels[j] * 38 + pixels[j + 1] * 75 + pixels[j + 2] * 15) >> 7);
-        }
+            for (var y = 0; y < accessor.Height; y++)
+            {
+                var row = accessor.GetRowSpan(y);
+                var rowOffset = y * accessor.Width * 3;
+                for (var x = 0; x < row.Length; x++)
+                {
+                    ref readonly var pixel = ref row[x];
+                    var i = rowOffset + x * 3;
+                    pixelData[i] = pixel.R;
+                    pixelData[i + 1] = pixel.G;
+                    pixelData[i + 2] = pixel.B;
+                }
+            }
+        });
+    }
+
+    private static bool IsColorDicom(DicomDataset dataset)
+    {
+        return dataset.GetSingleValueOrDefault(DicomTag.SamplesPerPixel, (ushort)1) == 3
+            && string.Equals(
+                dataset.GetSingleValueOrDefault(DicomTag.PhotometricInterpretation, string.Empty),
+                "RGB",
+                StringComparison.OrdinalIgnoreCase);
     }
 
     public async Task<bool> VerifyAsync(string hostName, int port, string calledAE)
@@ -396,11 +449,19 @@ public class PrintSCU : IPrintSCU
                 _aeTitle, request.CalledAE, request.HostName, request.Port);
 
             var file = await LoadDicomFileAsync(request.FilePath);
-            var client = CreateClient(request.HostName, request.Port, _aeTitle, request.CalledAE);
+            // 任务标记为彩色，或图像本身是 RGB，都走彩色打印
+            var printInColor = request.PrintInColor || IsColorDicom(file.Dataset);
+            DicomLogger.Information("PrintSCU", "打印模式: {Mode}", printInColor ? "彩色" : "灰度");
+
+            var printMetaContext = CreatePrintMetaPresentationContext(printInColor);
+            var client = CreateClient(request.HostName, request.Port, _aeTitle, request.CalledAE, printMetaContext);
 
             // 1. 创建 Film Session
-            var filmSessionRequest = new DicomNCreateRequest(DicomUID.BasicFilmSession, DicomUID.Generate());
-            filmSessionRequest.Dataset = CreateFilmSessionDataset(request);
+            var filmSessionRequest = new DicomNCreateRequest(DicomUID.BasicFilmSession, DicomUID.Generate())
+            {
+                Dataset = CreateFilmSessionDataset(request),
+                PresentationContext = printMetaContext
+            };
 
             DicomResponse? filmSessionResponse = null;
             var filmSessionTcs = new TaskCompletionSource<bool>();
@@ -419,8 +480,11 @@ public class PrintSCU : IPrintSCU
                 DicomLogger.Information("PrintSCU", "Film Session 创建成功, UID: {Uid}", filmSessionUid);
 
                 // 2. 创建 Film Box
-                var filmBoxRequest = new DicomNCreateRequest(DicomUID.BasicFilmBox, DicomUID.Generate());
-                filmBoxRequest.Dataset = CreateFilmBoxDataset(request);
+                var filmBoxRequest = new DicomNCreateRequest(DicomUID.BasicFilmBox, DicomUID.Generate())
+                {
+                    Dataset = CreateFilmBoxDataset(request),
+                    PresentationContext = printMetaContext
+                };
                 filmBoxRequest.Dataset.Add(DicomTag.ReferencedFilmSessionSequence, new DicomDataset[] 
                 {
                     new DicomDataset 
@@ -452,8 +516,11 @@ public class PrintSCU : IPrintSCU
                     var imageBoxInstanceUid = imageBoxItem.GetSingleValue<DicomUID>(DicomTag.ReferencedSOPInstanceUID);
 
                     // 3. 设置 Image Box
-                    var imageBoxRequest = new DicomNSetRequest(imageBoxClassUid, imageBoxInstanceUid);
-                    imageBoxRequest.Dataset = CreateImageBoxDataset(file);
+                    var imageBoxRequest = new DicomNSetRequest(imageBoxClassUid, imageBoxInstanceUid)
+                    {
+                        Dataset = CreateImageBoxDataset(file, printInColor),
+                        PresentationContext = printMetaContext
+                    };
 
                     imageBoxRequest.OnResponseReceived = (ibReq, ibRes) =>
                     {
@@ -465,8 +532,11 @@ public class PrintSCU : IPrintSCU
                         }
 
                         // 4. 执行打印
-                        var printRequest = new DicomNActionRequest(DicomUID.BasicFilmSession, DicomUID.Parse(filmSessionUid), 1);
-                        printRequest.OnResponseReceived = (pReq, pRes) =>
+                        var actionRequest = new DicomNActionRequest(DicomUID.BasicFilmSession, DicomUID.Parse(filmSessionUid), 1)
+                        {
+                            PresentationContext = printMetaContext
+                        };
+                        actionRequest.OnResponseReceived = (pReq, pRes) =>
                         {
                             if (pRes.Status.State != DicomState.Success)
                             {
@@ -477,7 +547,7 @@ public class PrintSCU : IPrintSCU
                             filmSessionTcs.SetResult(true);
                         };
 
-                        client.AddRequestAsync(printRequest).Wait();
+                        client.AddRequestAsync(actionRequest).Wait();
                         client.SendAsync().Wait();
                     };
 
