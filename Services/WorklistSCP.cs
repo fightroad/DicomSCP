@@ -510,9 +510,9 @@ public class WorklistSCP : DicomService, IDicomServiceProvider, IDicomCFindProvi
         }
         else
         {
-            // 没有传日期参数，使用过去30天到未来30天的范围
-            startDate = DateTime.Now.AddDays(-30).ToString("yyyyMMdd");
-            endDate = DateTime.Now.AddDays(30).ToString("yyyyMMdd");
+            // 没有传日期参数，使用过去3天到未来3天的范围
+            startDate = DateTime.Now.AddDays(-3).ToString("yyyyMMdd");
+            endDate = DateTime.Now.AddDays(3).ToString("yyyyMMdd");
             DicomLogger.Debug("WorklistSCP", "日期处理: 未传日期, 使用默认范围: {StartDate} - {EndDate}", 
                 startDate, endDate);
         }
