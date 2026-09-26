@@ -1,9 +1,28 @@
+html, body {
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+}
+
 body {
     background-color: #f8f9fa;
+    display: flex;
+    flex-direction: column;
 }
 
 .navbar {
     margin-bottom: 0.5rem;
+    flex-shrink: 0;
+}
+
+/* 主内容区：占满剩余高度，滚动发生在卡片内部 */
+.main-container {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 0.5rem;
+    overflow: hidden;
 }
 
 /* 导航栏样式 */
@@ -40,12 +59,16 @@ body {
     background-color: #fff;
 }
 
-/* 内容区域样式 */
+/* 内容区域样式：卡片内部滚动 */
 #content-area {
     background-color: white;
     padding: 12px 16px;
     border-radius: 5px;
     box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 .table th {
@@ -179,32 +202,80 @@ body {
     background-color: rgba(0, 123, 255, 0.1);
 }
 
-        .drop-zone {
-            min-height: 150px;
-            border: 2px dashed #dee2e6;
-            transition: all 0.3s ease;
-            background-color: #f8f9fa;
-        }
-        
-        .drop-zone.border-primary {
-            border-color: #0d6efd;
-            background-color: #f8f9fa;
-        }
-        
-        .drop-zone i {
-            font-size: 2rem;
-            color: #6c757d;
-            margin-bottom: 0.5rem;
-        }
-        
-        .drop-zone p {
-            color: #6c757d;
-        }
-        
-        #selectedFiles {
-            max-height: 400px;
-            overflow-y: auto;
-        }
+.drop-zone {
+    border: 2px dashed #dee2e6;
+    transition: all 0.3s ease;
+    background-color: #f8f9fa;
+}
+
+.drop-zone.drag-over {
+    border-color: #0d6efd;
+}
+
+.drop-zone i {
+    font-size: 1.25rem;
+    color: #6c757d;
+    margin-bottom: 0.25rem;
+}
+
+.drop-zone p {
+    color: #6c757d;
+}
+
+#selectedFiles {
+    overflow: hidden;
+    flex-direction: column;
+    min-height: 0;
+    flex: 1;
+}
+
+#selectedFiles .store-file-table {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+/* 发送图像页：列表占满剩余高度，只保留列表内滚动 */
+#content-area:has(#store-page.show) {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+#store-page.show {
+    display: flex !important;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    height: 100%;
+}
+
+#store-page.show > .card {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 0;
+}
+
+#store-page.show .card-body {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 0.75rem;
+}
+
+#store-page.show #storeForm {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+#store-page.show .store-file-header {
+    flex-shrink: 0;
+}
         
         /* 服务状态样式 */
         .service-status-group {
@@ -366,9 +437,11 @@ body {
         border: 1px solid #2d2d2d;
         border-radius: 4px;
         width: 100%;
-        height: 500px;
-        resize: vertical;
+        height: 100%;
+        min-height: 0;
+        resize: none;
         outline: none;
+        overflow: auto;
     }
 
     #configEditor:focus {
@@ -391,6 +464,58 @@ body {
         border-radius: 6px;
         border: 3px solid #1e1e1e;
     }
+
+/* 设置页：编辑区自适应剩余高度，只在黑色区域内滚动 */
+#content-area:has(#settings-page.show) {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+#settings-page.show {
+    display: flex !important;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    height: 100%;
+}
+
+#settings-page.show > .card {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 0;
+}
+
+#settings-page.show .card-body {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 0.75rem;
+}
+
+#settings-page.show .card-body > .row,
+#settings-page.show .card-body > .row > .col-12 {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+#settings-page.show .card-title,
+#settings-page.show .d-flex.justify-content-between {
+    flex-shrink: 0;
+}
+
+#settings-page.show .config-editor-wrap {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 0;
+}
 
 /* 状态颜色样式 */
 .status-item.cpu-normal { color: #98ff98; }
