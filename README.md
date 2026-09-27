@@ -16,11 +16,11 @@
 > 关键词：开源 DICOM SCP、轻量级 PACS、WADO-URI、Worklist、Query/Retrieve、医学影像系统集成。
 
 - DicomSCP 是一个基于 .NET Core 的 DICOM 医学影像基础服务组件，提供轻量级 PACS 核心能力，可用于 DICOM 接入、影像存储、查询检索与系统集成。
-- 本项目由多年医学影像从业经验积累而来，旨在为中文医学影像生态提供一个轻量、开放、可扩展的 DICOM/PACS 基础设施实现。不限制使用，请遵守[MIT许可协议](LICENSE)。如果项目对您有帮助，欢迎[赞助](#赞助项目)支持我们继续改进！
+- 本项目由多年医学影像从业经验积累而来，旨在为中文医学影像生态提供一个轻量、开放、可扩展的 DICOM/PACS 基础设施实现。使用请遵守[MIT许可协议](LICENSE)，保留版权与许可声明并注明出处。如果项目对您有帮助，欢迎[赞助](#赞助项目)支持我们继续改进！
 - 提供完整商业版云RIS/PACS（区域云影像）和云胶片（数字胶片）解决方案助力紧密型医共体和医保影像云，亦可提供医疗信息化相关的定制开发和接口改造服务，有相关需求可以联系咨询！
 - 很多用户咨询想要一套集成轻量报告功能的PACS系统，现推出了定位轻量应用场景的全流程MiniPACS系统满足不同需求。[MiniPACS](https://www.cloudpacs.top/archives/minipacs%E5%BD%B1%E5%83%8F%E7%AE%A1%E7%90%86%E4%B8%8E%E6%8A%A5%E5%91%8A%E7%B3%BB%E7%BB%9F)
 - 相关商业版配套子系统：[CloudRIS](https://www.cloudpacs.top/archives/cloudris-yun-ying-xiang-xin-xi-xi-tong) | [CloudFilm](https://www.cloudpacs.top/archives/dian-zi-yun-jiao-pian-xi-tong) | [DicomServer](https://www.cloudpacs.top/archives/2025-10-27-10-48-15) | [DCMViewer](https://www.cloudpacs.top/archives/dcmviewer%E5%8C%BB%E5%AD%A6%E5%BD%B1%E5%83%8F%E6%B5%8F%E8%A7%88%E5%99%A8) | [Acquisition-Engine](https://www.cloudpacs.top/archives/rispacsdicom%E5%BD%B1%E5%83%8F%E9%87%87%E9%9B%86%E7%B3%BB%E7%BB%9F) | [Integration-Engine](https://www.cloudpacs.top/archives/ji-yu-shu-ju-ku-de-webapi-ji-cheng-fa-bu-fu-wu)
-- 测试工具（用于联调与传输测试）：[pacs-explorer](https://gitee.com/fightroad/pacs-explorer) | [mini-scu](https://gitee.com/fightroad/mini-scu) | [DicomTransfer](https://gitee.com/fightroad/DicomTransfer) | [DicomStoreScp](https://gitee.com/fightroad/DicomStoreScp) | [DicomProxy_Viewer](https://gitee.com/fightroad/DicomProxy_Viewer)
+- 测试工具（用于联调与传输测试）：[MiniScu](https://gitee.com/fightroad/mini-scu) | [PacsExplorer](https://gitee.com/fightroad/pacs-explorer) | [DicomTransfer](https://gitee.com/fightroad/DicomTransfer) | [DicomStoreScp](https://gitee.com/fightroad/DicomStoreScp) | [DicomProxy_Viewer](https://gitee.com/fightroad/DicomProxy_Viewer)
 - [项目Gitee仓库](https://gitee.com/fightroad/DicomSCP)  |  [项目GitHub仓库](https://github.com/fightroad/DicomSCP)
 
 <a id="contact-us"></a>
@@ -45,7 +45,7 @@
   </tr>
 </table>
 
-## 🔗 开源 vs 商业版本
+## 🔗 开源组件 vs 商业方案
 
 | 维度 | DicomSCP（开源） | 商业解决方案 |
 |------|------------------|--------------|
@@ -353,4 +353,6 @@ server {
 
 ## 许可证
 
-MIT License
+本项目采用 [MIT License](LICENSE)。
+
+使用、修改或分发时，请保留版权与许可声明，并注明出处。正式条款以根目录 [LICENSE](LICENSE) 为准。
