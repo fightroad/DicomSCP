@@ -30,17 +30,25 @@
 
 > 添加好友时请备注来意（如：DicomSCP 咨询 / 商业合作），方便及时通过。
 
-<table>
+<table align="center">
   <tr>
-    <td align="center">
-      <img src="about/微信联系.png" alt="微信联系二维码" width="200"/>
+    <td align="center" width="220">
+      <img src="about/微信联系.png" alt="微信联系二维码" width="180"/>
       <br/>
-      微信联系
+      <b>微信联系</b>
     </td>
-    <td align="center">
-      <img src="about/QQ联系.png" alt="QQ联系二维码" width="200"/>
+    <td align="center" width="220">
+      <img src="about/QQ联系.png" alt="QQ联系二维码" width="180"/>
       <br/>
-      QQ联系
+      <b>QQ联系</b>
+    </td>
+  </tr>
+  <tr>
+    <td colspan="2" align="center">
+      <br/>
+      <img src="about/公众号.png" alt="医信部落公众号" width="420"/>
+      <br/>
+      <b>微信公众号：医信部落</b>（扫码关注 / 微信搜一搜）
     </td>
   </tr>
 </table>
